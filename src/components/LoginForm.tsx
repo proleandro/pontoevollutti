@@ -11,7 +11,6 @@ import { User, Clock } from 'lucide-react';
 export function LoginForm() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
@@ -58,7 +57,7 @@ export function LoginForm() {
               Sistema de Ponto
             </h1>
             <p className="text-xl font-semibold text-publievo-purple-700">Publievo</p>
-            <p className="text-gray-600 mt-2">Controle de presença moderno e intuitivo</p>
+            <p className="text-gray-600 mt-2">Controle de presença para estágios</p>
           </div>
         </div>
 
@@ -66,13 +65,10 @@ export function LoginForm() {
         <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-2xl text-center text-gray-800">
-              {isLogin ? 'Fazer Login' : 'Criar Conta'}
+              Fazer Login
             </CardTitle>
             <CardDescription className="text-center text-gray-600">
-              {isLogin 
-                ? 'Entre com suas credenciais para acessar o sistema' 
-                : 'Crie sua conta para começar a usar o sistema'
-              }
+              Entre com suas credenciais para acessar o sistema
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -114,30 +110,11 @@ export function LoginForm() {
                 ) : (
                   <div className="flex items-center space-x-2">
                     <User className="w-4 h-4" />
-                    <span>{isLogin ? 'Entrar' : 'Criar Conta'}</span>
+                    <span>Entrar</span>
                   </div>
                 )}
               </Button>
             </form>
-
-            {/* Demo Credentials */}
-            <div className="mt-6 p-4 bg-gradient-publievo-soft rounded-xl">
-              <p className="text-sm font-semibold text-gray-700 mb-2">Credenciais de Demonstração:</p>
-              <div className="space-y-1 text-xs text-gray-600">
-                <p><strong>Colaborador:</strong> joao@publievo.com | 123456</p>
-                <p><strong>Gestor:</strong> maria@publievo.com | admin123</p>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-publievo-purple-600 hover:text-publievo-purple-800 font-medium transition-colors"
-              >
-                {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Faça login'}
-              </button>
-            </div>
           </CardContent>
         </Card>
 

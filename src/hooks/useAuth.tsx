@@ -1,74 +1,72 @@
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, senha: string) => Promise<boolean>;
-  register: (userData: Omit<User, 'id'> & { senha: string }) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users para demonstração
-const mockUsers: (User & { senha: string })[] = [
-  {
-    id: '1',
-    nome: 'João Silva',
-    cpf: '123.456.789-00',
-    cargo: 'Desenvolvedor',
-    email: 'joao@publievo.com',
-    tipo: 'colaborador',
-    senha: '123456'
-  },
-  {
-    id: '2',
-    nome: 'Maria Santos',
-    cpf: '987.654.321-00',
-    cargo: 'Gerente',
-    email: 'maria@publievo.com',
-    tipo: 'gestor',
-    senha: 'admin123'
-  }
-];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Verificar se há usuário logado no localStorage
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+    setLoading(false);
+  }, []);
 
   const login = async (email: string, senha: string): Promise<boolean> => {
-    const foundUser = mockUsers.find(u => u.email === email && u.senha === senha);
-    if (foundUser) {
-      const { senha: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      return true;
-    }
-    return false;
-  };
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .eq('senha', senha)
+        .single();
 
-  const register = async (userData: Omit<User, 'id'> & { senha: string }): Promise<boolean> => {
-    // Simula registro de novo usuário
-    const newUser: User = {
-      ...userData,
-      id: Date.now().toString(),
-    };
-    delete (userData as any).senha;
-    setUser(newUser);
-    return true;
+      if (error || !data) {
+        console.error('Login error:', error);
+        return false;
+      }
+
+      // Remover senha do objeto user
+      const { senha: _, ...userWithoutPassword } = data;
+      setUser(userWithoutPassword);
+      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+      return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('currentUser');
   };
 
   return (
     <AuthContext.Provider value={{
       user,
       login,
-      register,
       logout,
-      isAuthenticated: !!user
+      isAuthenticated: !!user,
+      loading
     }}>
       {children}
     </AuthContext.Provider>

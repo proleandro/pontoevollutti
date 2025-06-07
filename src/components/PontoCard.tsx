@@ -1,133 +1,239 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { Clock, CheckCircle, AlertCircle, LogIn, LogOut } from 'lucide-react';
 
 export function PontoCard() {
-  const [entrada, setEntrada] = useState('');
-  const [saida, setSaida] = useState('');
-  const [registrado, setRegistrado] = useState(false);
+  const [pontoHoje, setPontoHoje] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const calcularHoras = (entrada: string, saida: string) => {
-    if (!entrada || !saida) return 0;
-    
-    const [entradaH, entradaM] = entrada.split(':').map(Number);
-    const [saidaH, saidaM] = saida.split(':').map(Number);
-    
-    const entradaMinutos = entradaH * 60 + entradaM;
-    const saidaMinutos = saidaH * 60 + saidaM;
-    const almocoMinutos = 60; // 1 hora de almoço
-    
-    const totalMinutos = saidaMinutos - entradaMinutos - almocoMinutos;
-    return Math.max(0, totalMinutos / 60);
+  useEffect(() => {
+    if (user) {
+      carregarPontoHoje();
+    }
+  }, [user]);
+
+  const carregarPontoHoje = async () => {
+    try {
+      const hoje = new Date().toISOString().split('T')[0];
+      
+      const { data, error } = await supabase
+        .from('ponto_registros')
+        .select('*')
+        .eq('colaborador_id', user?.id)
+        .eq('data', hoje)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Erro ao carregar ponto:', error);
+        return;
+      }
+
+      setPontoHoje(data);
+    } catch (error) {
+      console.error('Erro ao carregar ponto:', error);
+    }
   };
 
-  const horasLiquidas = calcularHoras(entrada, saida);
+  const registrarEntrada = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const agora = new Date().toISOString();
+      const hoje = new Date().toISOString().split('T')[0];
 
-  const handleRegistrarPonto = () => {
-    if (!entrada || !saida) {
+      const { error } = await supabase
+        .from('ponto_registros')
+        .insert({
+          colaborador_id: user.id,
+          data: hoje,
+          entrada: agora
+        });
+
+      if (error) {
+        toast({
+          title: "Erro",
+          description: "Erro ao registrar entrada: " + error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
       toast({
-        title: "Campos obrigatórios",
-        description: "Preencha os horários de entrada e saída",
+        title: "Entrada registrada!",
+        description: `Entrada marcada às ${new Date().toLocaleTimeString('pt-BR')}`,
+      });
+
+      carregarPontoHoje();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao registrar entrada",
         variant: "destructive"
       });
-      return;
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setRegistrado(true);
-    toast({
-      title: "Ponto registrado com sucesso!",
-      description: `${horasLiquidas.toFixed(2)} horas líquidas trabalhadas hoje`,
+  const registrarSaida = async () => {
+    if (!user || !pontoHoje) return;
+    
+    setLoading(true);
+    try {
+      const agora = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('ponto_registros')
+        .update({
+          saida: agora
+        })
+        .eq('id', pontoHoje.id);
+
+      if (error) {
+        toast({
+          title: "Erro",
+          description: "Erro ao registrar saída: " + error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Saída registrada!",
+        description: `Saída marcada às ${new Date().toLocaleTimeString('pt-BR')}`,
+      });
+
+      carregarPontoHoje();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao registrar saída",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatarHora = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* Formulário de Ponto */}
+      {/* Marcação de Ponto */}
       <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2 text-gray-800">
             <Clock className="w-5 h-5 text-publievo-orange-500" />
-            <span>Registrar Ponto Hoje</span>
+            <span>Marcação de Ponto</span>
           </CardTitle>
           <CardDescription>
-            Registre seus horários de trabalho do dia atual
+            Marque sua entrada e saída automaticamente
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="entrada" className="text-gray-700">Entrada</Label>
-              <Input
-                id="entrada"
-                type="time"
-                value={entrada}
-                onChange={(e) => setEntrada(e.target.value)}
-                className="border-gray-200 focus:border-publievo-orange-400"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="saida" className="text-gray-700">Saída</Label>
-              <Input
-                id="saida"
-                type="time"
-                value={saida}
-                onChange={(e) => setSaida(e.target.value)}
-                className="border-gray-200 focus:border-publievo-orange-400"
-              />
-            </div>
+          {/* Hora Atual */}
+          <div className="text-center p-4 bg-gradient-publievo-soft rounded-xl">
+            <p className="text-sm text-gray-600 mb-1">Hora Atual</p>
+            <p className="text-3xl font-bold text-publievo-purple-700">
+              {new Date().toLocaleTimeString('pt-BR')}
+            </p>
+            <p className="text-sm text-gray-600">
+              {new Date().toLocaleDateString('pt-BR', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </p>
           </div>
 
-          {/* Horários Fixos */}
-          <div className="bg-gradient-publievo-soft p-4 rounded-xl">
-            <h4 className="font-semibold text-gray-700 mb-2">Horários Fixos</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">Saída Almoço:</span>
-                <span className="font-semibold text-publievo-purple-700 ml-2">12:00</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Retorno Almoço:</span>
-                <span className="font-semibold text-publievo-purple-700 ml-2">13:00</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Cálculo de Horas */}
-          {entrada && saida && (
+          {/* Registros do Dia */}
+          {pontoHoje && (
             <div className="bg-white p-4 rounded-xl border border-gray-200">
-              <h4 className="font-semibold text-gray-700 mb-2">Resumo do Dia</h4>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Horas Líquidas:</span>
-                <span className="text-2xl font-bold text-publievo-orange-600">
-                  {horasLiquidas.toFixed(2)}h
-                </span>
+              <h4 className="font-semibold text-gray-700 mb-3">Registros de Hoje</h4>
+              <div className="space-y-2 text-sm">
+                {pontoHoje.entrada && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Entrada:</span>
+                    <span className="font-semibold text-green-600">
+                      {formatarHora(pontoHoje.entrada)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Saída Almoço:</span>
+                  <span className="font-semibold text-publievo-purple-700">12:00</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Retorno Almoço:</span>
+                  <span className="font-semibold text-publievo-purple-700">13:00</span>
+                </div>
+                {pontoHoje.saida && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Saída:</span>
+                    <span className="font-semibold text-red-600">
+                      {formatarHora(pontoHoje.saida)}
+                    </span>
+                  </div>
+                )}
+                {pontoHoje.horas_liquidas > 0 && (
+                  <div className="flex justify-between border-t pt-2 mt-2">
+                    <span className="text-gray-600">Horas de Estágio:</span>
+                    <span className="text-xl font-bold text-publievo-orange-600">
+                      {pontoHoje.horas_liquidas}h
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          <Button
-            onClick={handleRegistrarPonto}
-            disabled={registrado}
-            className="w-full bg-gradient-publievo hover:opacity-90 text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1"
-          >
-            {registrado ? (
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="w-4 h-4" />
-                <span>Ponto Registrado</span>
-              </div>
+          {/* Botões de Ação */}
+          <div className="space-y-3">
+            {!pontoHoje?.entrada ? (
+              <Button
+                onClick={registrarEntrada}
+                disabled={loading}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1"
+              >
+                <div className="flex items-center space-x-2">
+                  <LogIn className="w-4 h-4" />
+                  <span>Registrar Entrada</span>
+                </div>
+              </Button>
+            ) : !pontoHoje?.saida ? (
+              <Button
+                onClick={registrarSaida}
+                disabled={loading}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1"
+              >
+                <div className="flex items-center space-x-2">
+                  <LogOut className="w-4 h-4" />
+                  <span>Registrar Saída</span>
+                </div>
+              </Button>
             ) : (
-              <div className="flex items-center space-x-2">
-                <Clock className="w-4 h-4" />
-                <span>Registrar Ponto</span>
+              <div className="w-full bg-gray-100 text-gray-600 font-semibold py-3 rounded-xl text-center">
+                <div className="flex items-center justify-center space-x-2">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Ponto Completo</span>
+                </div>
               </div>
             )}
-          </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -140,9 +246,16 @@ export function PontoCard() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${registrado ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`}></div>
+              <div className={`w-3 h-3 rounded-full ${
+                pontoHoje?.saida ? 'bg-gray-500' : pontoHoje?.entrada ? 'bg-green-500' : 'bg-yellow-500'
+              } animate-pulse`}></div>
               <span className="font-medium">
-                {registrado ? 'Ponto registrado para hoje' : 'Aguardando registro do ponto'}
+                {pontoHoje?.saida 
+                  ? 'Expediente finalizado' 
+                  : pontoHoje?.entrada 
+                    ? 'Em expediente' 
+                    : 'Aguardando entrada'
+                }
               </span>
             </div>
           </CardContent>
@@ -158,9 +271,9 @@ export function PontoCard() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2 text-sm text-gray-700">
-              <p>• Jornada semanal de 30 horas</p>
+              <p>• Jornada semanal de 30 horas de estágio</p>
               <p>• Horário de almoço: 12:00 às 13:00 (fixo)</p>
-              <p>• Registre seu ponto diariamente</p>
+              <p>• Marcação automática pela hora do sistema</p>
               <p>• Consulte seu resumo semanal regularmente</p>
             </div>
           </CardContent>

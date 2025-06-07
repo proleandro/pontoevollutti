@@ -9,7 +9,136 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      escalas: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          domingo: string | null
+          id: string
+          quarta: string | null
+          quinta: string | null
+          sabado: string | null
+          segunda: string | null
+          semana: string
+          sexta: string | null
+          terca: string | null
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          domingo?: string | null
+          id?: string
+          quarta?: string | null
+          quinta?: string | null
+          sabado?: string | null
+          segunda?: string | null
+          semana: string
+          sexta?: string | null
+          terca?: string | null
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          domingo?: string | null
+          id?: string
+          quarta?: string | null
+          quinta?: string | null
+          sabado?: string | null
+          segunda?: string | null
+          semana?: string
+          sexta?: string | null
+          terca?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escalas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponto_registros: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          data: string
+          entrada: string | null
+          horas_liquidas: number | null
+          id: string
+          retorno_almoco: string | null
+          saida: string | null
+          saida_almoco: string | null
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          data?: string
+          entrada?: string | null
+          horas_liquidas?: number | null
+          id?: string
+          retorno_almoco?: string | null
+          saida?: string | null
+          saida_almoco?: string | null
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          data?: string
+          entrada?: string | null
+          horas_liquidas?: number | null
+          id?: string
+          retorno_almoco?: string | null
+          saida?: string | null
+          saida_almoco?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_registros_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          cargo: string
+          cpf: string
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          senha: string
+          tipo: string
+        }
+        Insert: {
+          cargo: string
+          cpf: string
+          created_at?: string
+          email: string
+          id?: string
+          nome: string
+          senha: string
+          tipo: string
+        }
+        Update: {
+          cargo?: string
+          cpf?: string
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          senha?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

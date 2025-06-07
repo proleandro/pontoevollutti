@@ -5,23 +5,27 @@ export interface User {
   cpf: string;
   cargo: string;
   email: string;
-  tipo: 'colaborador' | 'gestor';
+  tipo: 'colaborador' | 'gestor' | 'admin';
+  senha?: string;
+  created_at?: string;
 }
 
 export interface PontoRegistro {
   id: string;
-  colaboradorId: string;
+  colaborador_id: string;
   data: string;
   entrada?: string;
-  saidaAlmoco: string; // Fixo 12:00
-  retornoAlmoco: string; // Fixo 13:00
+  saida_almoco: string; // Fixo 12:00
+  retorno_almoco: string; // Fixo 13:00
   saida?: string;
-  horasLiquidas: number;
+  horas_liquidas: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Escala {
   id: string;
-  colaboradorId: string;
+  colaborador_id: string;
   semana: string; // YYYY-MM-DD (segunda-feira)
   segunda?: string;
   terca?: string;
@@ -33,7 +37,7 @@ export interface Escala {
 }
 
 export interface WeeklyReport {
-  horasTrabalhadas: number;
+  horasEstagio: number;
   metaSemanal: number;
   diasTrabalhados: number;
   divergencias: string[];

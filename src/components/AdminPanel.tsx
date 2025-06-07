@@ -1,46 +1,142 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Calendar, FileText, Download, UserPlus, Settings } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { Users, Calendar, FileText, Download, UserPlus, Settings, Edit, Clock } from 'lucide-react';
 
 export function AdminPanel() {
   const [activeSection, setActiveSection] = useState('colaboradores');
+  const [colaboradores, setColaboradores] = useState<any[]>([]);
+  const [pontos, setPontos] = useState<any[]>([]);
+  const [editandoPonto, setEditandoPonto] = useState<any>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const sections = [
     { id: 'colaboradores', label: 'Colaboradores', icon: Users },
+    { id: 'pontos', label: 'Gestão de Pontos', icon: Clock },
     { id: 'escalas', label: 'Escalas', icon: Calendar },
     { id: 'relatorios', label: 'Relatórios', icon: FileText },
   ];
 
-  // Mock data
-  const colaboradores = [
-    { id: '1', nome: 'João Silva', cargo: 'Desenvolvedor', email: 'joao@publievo.com', status: 'ativo' },
-    { id: '2', nome: 'Maria Santos', cargo: 'Designer', email: 'maria@publievo.com', status: 'ativo' },
-    { id: '3', nome: 'Pedro Costa', cargo: 'Analista', email: 'pedro@publievo.com', status: 'inativo' },
-  ];
+  useEffect(() => {
+    if (user?.tipo === 'admin') {
+      carregarColaboradores();
+      carregarPontos();
+    }
+  }, [user]);
 
-  const handleExportReport = (tipo: string) => {
-    toast({
-      title: "Relatório exportado",
-      description: `Relatório ${tipo} foi gerado com sucesso`,
-    });
+  const carregarColaboradores = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .neq('tipo', 'admin')
+        .order('nome');
+
+      if (error) {
+        console.error('Erro ao carregar colaboradores:', error);
+        return;
+      }
+
+      setColaboradores(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar colaboradores:', error);
+    }
   };
+
+  const carregarPontos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ponto_registros')
+        .select(`
+          *,
+          users!colaborador_id(nome, cargo)
+        `)
+        .order('data', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Erro ao carregar pontos:', error);
+        return;
+      }
+
+      setPontos(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar pontos:', error);
+    }
+  };
+
+  const salvarEdicaoPonto = async () => {
+    if (!editandoPonto) return;
+
+    try {
+      const { error } = await supabase
+        .from('ponto_registros')
+        .update({
+          entrada: editandoPonto.entrada,
+          saida: editandoPonto.saida
+        })
+        .eq('id', editandoPonto.id);
+
+      if (error) {
+        toast({
+          title: "Erro",
+          description: "Erro ao salvar alterações: " + error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Ponto atualizado com sucesso!",
+      });
+
+      setEditandoPonto(null);
+      carregarPontos();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao salvar alterações",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const formatarDataHora = (timestamp: string) => {
+    if (!timestamp) return '-';
+    return new Date(timestamp).toLocaleString('pt-BR');
+  };
+
+  const formatarData = (date: string) => {
+    return new Date(date + 'T00:00:00').toLocaleDateString('pt-BR');
+  };
+
+  if (user?.tipo !== 'admin') {
+    return (
+      <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+        <CardContent className="text-center py-8">
+          <p className="text-gray-600">Acesso restrito para administradores.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-8">
       {/* Navigation */}
-      <div className="flex space-x-2">
+      <div className="flex space-x-2 overflow-x-auto">
         {sections.map((section) => (
           <button
             key={section.id}
             onClick={() => setActiveSection(section.id)}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-medium transition-all duration-300 ${
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${
               activeSection === section.id
                 ? 'bg-gradient-publievo text-white shadow-lg'
                 : 'bg-white text-gray-600 hover:bg-publievo-orange-50'
@@ -52,46 +148,128 @@ export function AdminPanel() {
         ))}
       </div>
 
+      {/* Gestão de Pontos */}
+      {activeSection === 'pontos' && (
+        <div className="space-y-6">
+          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 text-gray-800">
+                <Clock className="w-5 h-5 text-publievo-orange-500" />
+                <span>Gestão de Pontos dos Estagiários</span>
+              </CardTitle>
+              <CardDescription>
+                Visualize e edite os registros de ponto dos colaboradores
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {pontos.map((ponto) => (
+                  <div
+                    key={ponto.id}
+                    className="p-4 rounded-xl bg-gradient-publievo-soft hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-gray-800">
+                          {ponto.users?.nome} - {ponto.users?.cargo}
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          Data: {formatarData(ponto.data)}
+                        </p>
+                        <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Entrada: </span>
+                            <span className="font-medium">
+                              {formatarDataHora(ponto.entrada)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Saída: </span>
+                            <span className="font-medium">
+                              {formatarDataHora(ponto.saida)}
+                            </span>
+                          </div>
+                        </div>
+                        {ponto.horas_liquidas > 0 && (
+                          <div className="mt-2">
+                            <span className="text-gray-600">Horas de Estágio: </span>
+                            <span className="font-bold text-publievo-orange-600">
+                              {ponto.horas_liquidas}h
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditandoPonto(ponto)}
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Editar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Modal de Edição */}
+          {editandoPonto && (
+            <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle>Editar Ponto - {editandoPonto.users?.nome}</CardTitle>
+                <CardDescription>
+                  Data: {formatarData(editandoPonto.data)}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Entrada</Label>
+                    <Input
+                      type="datetime-local"
+                      value={editandoPonto.entrada ? new Date(editandoPonto.entrada).toISOString().slice(0, 16) : ''}
+                      onChange={(e) => setEditandoPonto({
+                        ...editandoPonto,
+                        entrada: e.target.value ? new Date(e.target.value).toISOString() : null
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Saída</Label>
+                    <Input
+                      type="datetime-local"
+                      value={editandoPonto.saida ? new Date(editandoPonto.saida).toISOString().slice(0, 16) : ''}
+                      onChange={(e) => setEditandoPonto({
+                        ...editandoPonto,
+                        saida: e.target.value ? new Date(e.target.value).toISOString() : null
+                      })}
+                    />
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  <Button onClick={salvarEdicaoPonto} className="bg-gradient-publievo hover:opacity-90">
+                    Salvar
+                  </Button>
+                  <Button variant="outline" onClick={() => setEditandoPonto(null)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* Colaboradores */}
       {activeSection === 'colaboradores' && (
         <div className="space-y-6">
           <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-gray-800">
-                <UserPlus className="w-5 h-5 text-publievo-orange-500" />
-                <span>Adicionar Colaborador</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome Completo</Label>
-                  <Input id="nome" placeholder="Nome do colaborador" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cpf">CPF</Label>
-                  <Input id="cpf" placeholder="000.000.000-00" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cargo">Cargo</Label>
-                  <Input id="cargo" placeholder="Cargo do colaborador" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="email@publievo.com" />
-                </div>
-              </div>
-              <Button className="bg-gradient-publievo hover:opacity-90 text-white">
-                Adicionar Colaborador
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-gray-800">
                 <Users className="w-5 h-5 text-publievo-purple-500" />
-                <span>Lista de Colaboradores</span>
+                <span>Lista de Estagiários</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -106,12 +284,8 @@ export function AdminPanel() {
                       <p className="text-sm text-gray-600">{colaborador.cargo} • {colaborador.email}</p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        colaborador.status === 'ativo' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {colaborador.status}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800`}>
+                        {colaborador.tipo}
                       </span>
                       <Button variant="outline" size="sm">
                         <Settings className="w-4 h-4" />
@@ -134,16 +308,16 @@ export function AdminPanel() {
               <span>Gestão de Escalas</span>
             </CardTitle>
             <CardDescription>
-              Defina as escalas semanais dos colaboradores
+              Defina as escalas semanais dos estagiários
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Colaborador</Label>
+                <Label>Estagiário</Label>
                 <Select>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione um colaborador" />
+                    <SelectValue placeholder="Selecione um estagiário" />
                   </SelectTrigger>
                   <SelectContent>
                     {colaboradores.map((c) => (
@@ -184,7 +358,7 @@ export function AdminPanel() {
                 <span>Relatório de Frequência</span>
               </CardTitle>
               <CardDescription>
-                Exportar relatório detalhado de presença dos colaboradores
+                Exportar relatório detalhado de presença dos estagiários
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -217,10 +391,10 @@ export function AdminPanel() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Colaborador</Label>
+                <Label>Estagiário</Label>
                 <Select>
                   <SelectTrigger>
-                    <SelectValue placeholder="Todos os colaboradores" />
+                    <SelectValue placeholder="Todos os estagiários" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>

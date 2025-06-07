@@ -15,7 +15,7 @@ export function Dashboard() {
   const menuItems = [
     { id: 'ponto', label: 'Ponto Diário', icon: Clock },
     { id: 'resumo', label: 'Resumo Semanal', icon: Calendar },
-    ...(user?.tipo === 'gestor' ? [{ id: 'admin', label: 'Painel Admin', icon: Settings }] : []),
+    ...(user?.tipo === 'gestor' || user?.tipo === 'admin' ? [{ id: 'admin', label: 'Painel Admin', icon: Settings }] : []),
   ];
 
   return (
@@ -32,7 +32,7 @@ export function Dashboard() {
                 <h1 className="text-xl font-bold bg-gradient-publievo bg-clip-text text-transparent">
                   Sistema de Ponto
                 </h1>
-                <p className="text-sm text-gray-600">Publievo</p>
+                <p className="text-sm text-gray-600">Publievo - Controle de Estágio</p>
               </div>
             </div>
             
@@ -101,7 +101,7 @@ export function Dashboard() {
         <div className="animate-fade-in">
           {activeTab === 'ponto' && <PontoCard />}
           {activeTab === 'resumo' && <WeeklyProgress />}
-          {activeTab === 'admin' && user?.tipo === 'gestor' && <AdminPanel />}
+          {activeTab === 'admin' && (user?.tipo === 'gestor' || user?.tipo === 'admin') && <AdminPanel />}
         </div>
       </div>
     </div>
