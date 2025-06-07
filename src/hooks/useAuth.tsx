@@ -42,10 +42,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
       }
 
-      // Remover senha do objeto user
+      // Remover senha do objeto user e garantir o tipo correto
       const { senha: _, ...userWithoutPassword } = data;
-      setUser(userWithoutPassword);
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+      const typedUser: User = {
+        ...userWithoutPassword,
+        tipo: data.tipo as 'colaborador' | 'gestor' | 'admin'
+      };
+      
+      setUser(typedUser);
+      localStorage.setItem('currentUser', JSON.stringify(typedUser));
       return true;
     } catch (error) {
       console.error('Login error:', error);

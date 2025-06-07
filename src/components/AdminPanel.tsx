@@ -109,6 +109,13 @@ export function AdminPanel() {
     }
   };
 
+  const handleExportReport = (tipo: string) => {
+    toast({
+      title: "Em desenvolvimento",
+      description: `Exportação de relatório de ${tipo} será implementada em breve.`,
+    });
+  };
+
   const formatarDataHora = (timestamp: string) => {
     if (!timestamp) return '-';
     return new Date(timestamp).toLocaleString('pt-BR');
