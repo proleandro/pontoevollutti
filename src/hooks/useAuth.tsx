@@ -5,7 +5,7 @@ import { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, senha: string) => Promise<boolean>;
+  login: (emailOrName: string, senha: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
@@ -26,20 +26,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = async (email: string, senha: string): Promise<boolean> => {
+  const login = async (emailOrName: string, senha: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      // Primeiro tentar buscar por email
+      let { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('email', email)
+        .eq('email', emailOrName)
         .eq('senha', senha)
         .single();
 
+      // Se não encontrou por email, tentar por nome
       if (error || !data) {
-        console.error('Login error:', error);
-        return false;
+        const { data: dataByName, error: errorByName } = await supabase
+          .from('users')
+          .select('*')
+          .eq('nome', emailOrName)
+          .eq('senha', senha)
+          .single();
+
+        if (errorByName || !dataByName) {
+          console.error('Login error:', error || errorByName);
+          return { 
+            success: false, 
+            error: 'Email/nome ou senha incorretos. Verifique suas credenciais.' 
+          };
+        }
+        
+        data = dataByName;
       }
 
       // Remover senha do objeto user e garantir o tipo correto
@@ -51,10 +67,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       setUser(typedUser);
       localStorage.setItem('currentUser', JSON.stringify(typedUser));
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      return false;
+      return { 
+        success: false, 
+        error: 'Erro interno. Tente novamente em alguns instantes.' 
+      };
     } finally {
       setLoading(false);
     }

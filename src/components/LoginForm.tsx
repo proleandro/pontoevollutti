@@ -6,10 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { User, Clock } from 'lucide-react';
+import { User, Clock, Info } from 'lucide-react';
 
 export function LoginForm() {
-  const [email, setEmail] = useState('');
+  const [emailOrName, setEmailOrName] = useState('');
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -20,8 +20,8 @@ export function LoginForm() {
     setLoading(true);
 
     try {
-      const success = await login(email, senha);
-      if (success) {
+      const result = await login(emailOrName, senha);
+      if (result.success) {
         toast({
           title: "Login realizado com sucesso!",
           description: "Bem-vindo ao Sistema de Ponto Publievo",
@@ -29,7 +29,7 @@ export function LoginForm() {
       } else {
         toast({
           title: "Erro no login",
-          description: "Email ou senha incorretos",
+          description: result.error || "Dados incorretos",
           variant: "destructive",
         });
       }
@@ -74,16 +74,20 @@ export function LoginForm() {
           <CardContent className="space-y-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-700">Email</Label>
+                <Label htmlFor="emailOrName" className="text-gray-700">Email ou Nome</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="emailOrName"
+                  type="text"
+                  placeholder="seu@email.com ou Seu Nome"
+                  value={emailOrName}
+                  onChange={(e) => setEmailOrName(e.target.value)}
                   required
                   className="border-gray-200 focus:border-publievo-orange-400 focus:ring-publievo-orange-400"
                 />
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <Info className="w-4 h-4" />
+                  <span>Você pode usar seu email ou nome para fazer login</span>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="senha" className="text-gray-700">Senha</Label>
@@ -115,6 +119,15 @@ export function LoginForm() {
                 )}
               </Button>
             </form>
+            
+            {/* Dicas de login */}
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="text-sm font-medium text-blue-800 mb-2">💡 Dados para teste:</h4>
+              <div className="text-xs text-blue-700 space-y-1">
+                <p><strong>Admin:</strong> admin@publievo.com ou Monique | Senha: 251090</p>
+                <p><strong>Dica:</strong> Use nome ou email para fazer login</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
