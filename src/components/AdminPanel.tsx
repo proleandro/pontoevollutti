@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { NovoColaboradorForm } from './NovoColaboradorForm';
 import { Users, Calendar, FileText, Download, UserPlus, Settings, Edit, Clock } from 'lucide-react';
 
 export function AdminPanel() {
@@ -14,6 +15,7 @@ export function AdminPanel() {
   const [colaboradores, setColaboradores] = useState<any[]>([]);
   const [pontos, setPontos] = useState<any[]>([]);
   const [editandoPonto, setEditandoPonto] = useState<any>(null);
+  const [mostrandoFormulario, setMostrandoFormulario] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -116,6 +118,11 @@ export function AdminPanel() {
     });
   };
 
+  const handleNovoColaboradorSuccess = () => {
+    setMostrandoFormulario(false);
+    carregarColaboradores();
+  };
+
   const formatarDataHora = (timestamp: string) => {
     if (!timestamp) return '-';
     return new Date(timestamp).toLocaleString('pt-BR');
@@ -154,6 +161,77 @@ export function AdminPanel() {
           </button>
         ))}
       </div>
+
+      {/* Colaboradores */}
+      {activeSection === 'colaboradores' && (
+        <div className="space-y-6">
+          {mostrandoFormulario ? (
+            <NovoColaboradorForm 
+              onSuccess={handleNovoColaboradorSuccess}
+              onCancel={() => setMostrandoFormulario(false)}
+            />
+          ) : (
+            <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center space-x-2 text-gray-800">
+                      <Users className="w-5 h-5 text-publievo-purple-500" />
+                      <span>Lista de Estagiários</span>
+                    </CardTitle>
+                    <CardDescription>
+                      Gerencie os colaboradores do sistema
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    onClick={() => setMostrandoFormulario(true)}
+                    className="bg-gradient-publievo hover:opacity-90 text-white"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Novo Colaborador
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {colaboradores.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhum colaborador cadastrado</p>
+                      <p className="text-sm">Clique em "Novo Colaborador" para adicionar</p>
+                    </div>
+                  ) : (
+                    colaboradores.map((colaborador) => (
+                      <div
+                        key={colaborador.id}
+                        className="flex items-center justify-between p-4 rounded-xl bg-gradient-publievo-soft hover:shadow-md transition-shadow"
+                      >
+                        <div>
+                          <h4 className="font-semibold text-gray-800">{colaborador.nome}</h4>
+                          <p className="text-sm text-gray-600">{colaborador.cargo} • {colaborador.email}</p>
+                          <p className="text-xs text-gray-500">CPF: {colaborador.cpf}</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            colaborador.tipo === 'gestor' 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {colaborador.tipo}
+                          </span>
+                          <Button variant="outline" size="sm">
+                            <Settings className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Gestão de Pontos */}
       {activeSection === 'pontos' && (
@@ -266,43 +344,6 @@ export function AdminPanel() {
               </CardContent>
             </Card>
           )}
-        </div>
-      )}
-
-      {/* Colaboradores */}
-      {activeSection === 'colaboradores' && (
-        <div className="space-y-6">
-          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-gray-800">
-                <Users className="w-5 h-5 text-publievo-purple-500" />
-                <span>Lista de Estagiários</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {colaboradores.map((colaborador) => (
-                  <div
-                    key={colaborador.id}
-                    className="flex items-center justify-between p-4 rounded-xl bg-gradient-publievo-soft hover:shadow-md transition-shadow"
-                  >
-                    <div>
-                      <h4 className="font-semibold text-gray-800">{colaborador.nome}</h4>
-                      <p className="text-sm text-gray-600">{colaborador.cargo} • {colaborador.email}</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800`}>
-                        {colaborador.tipo}
-                      </span>
-                      <Button variant="outline" size="sm">
-                        <Settings className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </div>
       )}
 

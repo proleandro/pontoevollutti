@@ -119,15 +119,6 @@ export function LoginForm() {
                 )}
               </Button>
             </form>
-            
-            {/* Dicas de login */}
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <h4 className="text-sm font-medium text-blue-800 mb-2">💡 Dados para teste:</h4>
-              <div className="text-xs text-blue-700 space-y-1">
-                <p><strong>Admin:</strong> admin@publievo.com ou Monique | Senha: 251090</p>
-                <p><strong>Dica:</strong> Use nome ou email para fazer login</p>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
