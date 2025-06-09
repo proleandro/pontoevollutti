@@ -1,42 +1,37 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { User, Clock, Info } from 'lucide-react';
+import { User, Clock } from 'lucide-react';
 
 export function LoginForm() {
-  const [emailOrName, setEmailOrName] = useState('');
-  const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setLoading(true);
 
     try {
-      const result = await login(emailOrName, senha);
+      const result = await login();
       if (result.success) {
         toast({
-          title: "Login realizado com sucesso!",
+          title: "Acesso liberado!",
           description: "Bem-vindo ao Sistema de Ponto Publievo",
         });
       } else {
         toast({
-          title: "Erro no login",
-          description: result.error || "Dados incorretos",
+          title: "Erro",
+          description: result.error || "Erro ao acessar",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Erro",
-        description: "Ocorreu um erro ao fazer login",
+        description: "Ocorreu um erro ao acessar o sistema",
         variant: "destructive",
       });
     } finally {
@@ -61,64 +56,34 @@ export function LoginForm() {
           </div>
         </div>
 
-        {/* Formulário de Login */}
+        {/* Formulário de Acesso Simplificado */}
         <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-2xl text-center text-gray-800">
-              Fazer Login
+              Acessar Sistema
             </CardTitle>
             <CardDescription className="text-center text-gray-600">
-              Entre com suas credenciais para acessar o sistema
+              Clique no botão abaixo para acessar o sistema
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="emailOrName" className="text-gray-700">Email ou Nome</Label>
-                <Input
-                  id="emailOrName"
-                  type="text"
-                  placeholder="seu@email.com ou Seu Nome"
-                  value={emailOrName}
-                  onChange={(e) => setEmailOrName(e.target.value)}
-                  required
-                  className="border-gray-200 focus:border-publievo-orange-400 focus:ring-publievo-orange-400"
-                />
-                <div className="flex items-center space-x-2 text-sm text-gray-500">
-                  <Info className="w-4 h-4" />
-                  <span>Você pode usar seu email ou nome para fazer login</span>
+            <Button
+              onClick={handleSubmit}
+              className="w-full bg-gradient-publievo hover:opacity-90 text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1"
+              disabled={loading}
+            >
+              {loading ? (
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Carregando...</span>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="senha" className="text-gray-700">Senha</Label>
-                <Input
-                  id="senha"
-                  type="password"
-                  placeholder="••••••••"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  required
-                  className="border-gray-200 focus:border-publievo-orange-400 focus:ring-publievo-orange-400"
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full bg-gradient-publievo hover:opacity-90 text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1"
-                disabled={loading}
-              >
-                {loading ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Carregando...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <User className="w-4 h-4" />
-                    <span>Entrar</span>
-                  </div>
-                )}
-              </Button>
-            </form>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <User className="w-4 h-4" />
+                  <span>Entrar</span>
+                </div>
+              )}
+            </Button>
           </CardContent>
         </Card>
 
