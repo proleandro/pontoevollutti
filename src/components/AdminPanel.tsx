@@ -11,7 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { NovoColaboradorForm } from './NovoColaboradorForm';
 import { AdminPontoForm } from './AdminPontoForm';
 import { AdminWeeklyOverview } from './AdminWeeklyOverview';
-import { Users, Calendar, FileText, Download, UserPlus, Settings, Edit, Clock, Plus, Trash2, TrendingUp } from 'lucide-react';
+import { WeeklyProgressUpdater } from './WeeklyProgressUpdater';
+import { Users, Calendar, FileText, Download, UserPlus, Settings, Edit, Clock, Plus, Trash2, TrendingUp, UserX } from 'lucide-react';
 
 export function AdminPanel() {
   const [activeSection, setActiveSection] = useState('colaboradores');
@@ -21,6 +22,7 @@ export function AdminPanel() {
   const [mostrandoFormulario, setMostrandoFormulario] = useState(false);
   const [mostrandoLancamento, setMostrandoLancamento] = useState(false);
   const [mostrandoConfirmacao, setMostrandoConfirmacao] = useState<any>(null);
+  const [mostrandoConfirmacaoColaborador, setMostrandoConfirmacaoColaborador] = useState<any>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -149,6 +151,55 @@ export function AdminPanel() {
     }
   };
 
+  const excluirColaborador = async (colaboradorId: string) => {
+    try {
+      // Primeiro, excluir todos os pontos do colaborador
+      const { error: pontosError } = await supabase
+        .from('ponto_registros')
+        .delete()
+        .eq('colaborador_id', colaboradorId);
+
+      if (pontosError) {
+        toast({
+          title: "Erro",
+          description: "Erro ao excluir registros de ponto: " + pontosError.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Depois, excluir o colaborador
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', colaboradorId);
+
+      if (error) {
+        toast({
+          title: "Erro",
+          description: "Erro ao excluir colaborador: " + error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Colaborador excluído com sucesso!",
+      });
+
+      setMostrandoConfirmacaoColaborador(null);
+      carregarColaboradores();
+      carregarPontos();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir colaborador",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleExportReport = (tipo: string) => {
     toast({
       title: "Em desenvolvimento",
@@ -187,6 +238,9 @@ export function AdminPanel() {
 
   return (
     <div className="space-y-8">
+      {/* Componente de Atualização Automática para Pontos */}
+      <WeeklyProgressUpdater onUpdate={carregarPontos} />
+
       {/* Navigation */}
       <div className="flex space-x-2 overflow-x-auto">
         {sections.map((section) => (
@@ -265,6 +319,14 @@ export function AdminPanel() {
                           <Button variant="outline" size="sm">
                             <Settings className="w-4 h-4" />
                           </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setMostrandoConfirmacaoColaborador(colaborador)}
+                            className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                          >
+                            <UserX className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     ))
@@ -272,6 +334,38 @@ export function AdminPanel() {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Modal de Confirmação de Exclusão de Colaborador */}
+          {mostrandoConfirmacaoColaborador && (
+            <Dialog open={!!mostrandoConfirmacaoColaborador} onOpenChange={() => setMostrandoConfirmacaoColaborador(null)}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center space-x-2">
+                    <UserX className="w-5 h-5 text-red-500" />
+                    <span>Confirmar Exclusão de Colaborador</span>
+                  </DialogTitle>
+                  <DialogDescription>
+                    Tem certeza que deseja excluir o colaborador <strong>{mostrandoConfirmacaoColaborador.nome}</strong>?
+                    <br />
+                    <span className="text-red-600 font-medium">Esta ação irá excluir também todos os registros de ponto deste colaborador e não pode ser desfeita.</span>
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <DialogFooter className="flex space-x-2">
+                  <Button variant="outline" onClick={() => setMostrandoConfirmacaoColaborador(null)}>
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={() => excluirColaborador(mostrandoConfirmacaoColaborador.id)}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <UserX className="w-4 h-4 mr-2" />
+                    Excluir Colaborador
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       )}
@@ -301,7 +395,7 @@ export function AdminPanel() {
                     <span>Gestão de Pontos dos Estagiários</span>
                   </CardTitle>
                   <CardDescription>
-                    Visualize, edite e gerencie os registros de ponto dos estagiários
+                    Visualize, edite e gerencie os registros de ponto dos estagiários (atualização automática)
                   </CardDescription>
                 </div>
                 <div className="flex space-x-2">
