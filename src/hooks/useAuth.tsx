@@ -62,6 +62,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
       }
 
+      // Validar tipo do usuário
+      const tipoValido = ['colaborador', 'gestor', 'admin'].includes(userData.tipo);
+      if (!tipoValido) {
+        console.error('Tipo de usuário inválido:', userData.tipo);
+        return { 
+          success: false, 
+          error: 'Tipo de usuário inválido' 
+        };
+      }
+
       // Login bem-sucedido
       const loggedUser: User = {
         id: userData.id,
@@ -69,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: userData.email,
         cpf: userData.cpf,
         cargo: userData.cargo,
-        tipo: userData.tipo
+        tipo: userData.tipo as 'colaborador' | 'gestor' | 'admin'
       };
       
       console.log('Login bem-sucedido:', loggedUser);

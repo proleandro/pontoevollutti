@@ -8,7 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { NovoColaboradorForm } from './NovoColaboradorForm';
-import { Users, Calendar, FileText, Download, UserPlus, Settings, Edit, Clock } from 'lucide-react';
+import { AdminPontoForm } from './AdminPontoForm';
+import { Users, Calendar, FileText, Download, UserPlus, Settings, Edit, Clock, Plus } from 'lucide-react';
 
 export function AdminPanel() {
   const [activeSection, setActiveSection] = useState('colaboradores');
@@ -16,6 +17,7 @@ export function AdminPanel() {
   const [pontos, setPontos] = useState<any[]>([]);
   const [editandoPonto, setEditandoPonto] = useState<any>(null);
   const [mostrandoFormulario, setMostrandoFormulario] = useState(false);
+  const [mostrandoLancamento, setMostrandoLancamento] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -121,6 +123,11 @@ export function AdminPanel() {
   const handleNovoColaboradorSuccess = () => {
     setMostrandoFormulario(false);
     carregarColaboradores();
+  };
+
+  const handleLancamentoSuccess = () => {
+    setMostrandoLancamento(false);
+    carregarPontos();
   };
 
   const formatarDataHora = (timestamp: string) => {
@@ -236,65 +243,92 @@ export function AdminPanel() {
       {/* Gestão de Pontos */}
       {activeSection === 'pontos' && (
         <div className="space-y-6">
+          {/* Lançamento Manual */}
+          {mostrandoLancamento ? (
+            <AdminPontoForm 
+              colaboradores={colaboradores}
+              onSuccess={handleLancamentoSuccess}
+            />
+          ) : null}
+
           <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-gray-800">
-                <Clock className="w-5 h-5 text-publievo-orange-500" />
-                <span>Gestão de Pontos dos Estagiários</span>
-              </CardTitle>
-              <CardDescription>
-                Visualize e edite os registros de ponto dos colaboradores
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center space-x-2 text-gray-800">
+                    <Clock className="w-5 h-5 text-publievo-orange-500" />
+                    <span>Gestão de Pontos dos Estagiários</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Visualize e edite os registros de ponto dos colaboradores
+                  </CardDescription>
+                </div>
+                <Button 
+                  onClick={() => setMostrandoLancamento(!mostrandoLancamento)}
+                  className="bg-gradient-publievo hover:opacity-90 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  {mostrandoLancamento ? 'Cancelar' : 'Lançar Ponto'}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {pontos.map((ponto) => (
-                  <div
-                    key={ponto.id}
-                    className="p-4 rounded-xl bg-gradient-publievo-soft hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-semibold text-gray-800">
-                          {ponto.users?.nome} - {ponto.users?.cargo}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          Data: {formatarData(ponto.data)}
-                        </p>
-                        <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-gray-600">Entrada: </span>
-                            <span className="font-medium">
-                              {formatarDataHora(ponto.entrada)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Saída: </span>
-                            <span className="font-medium">
-                              {formatarDataHora(ponto.saida)}
-                            </span>
-                          </div>
-                        </div>
-                        {ponto.horas_liquidas > 0 && (
-                          <div className="mt-2">
-                            <span className="text-gray-600">Horas de Estágio: </span>
-                            <span className="font-bold text-publievo-orange-600">
-                              {ponto.horas_liquidas}h
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditandoPonto(ponto)}
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Editar
-                      </Button>
-                    </div>
+                {pontos.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Nenhum registro de ponto encontrado</p>
+                    <p className="text-sm">Os registros aparecerão aqui conforme forem lançados</p>
                   </div>
-                ))}
+                ) : (
+                  pontos.map((ponto) => (
+                    <div
+                      key={ponto.id}
+                      className="p-4 rounded-xl bg-gradient-publievo-soft hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold text-gray-800">
+                            {ponto.users?.nome} - {ponto.users?.cargo}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            Data: {formatarData(ponto.data)}
+                          </p>
+                          <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Entrada: </span>
+                              <span className="font-medium">
+                                {formatarDataHora(ponto.entrada)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Saída: </span>
+                              <span className="font-medium">
+                                {formatarDataHora(ponto.saida)}
+                              </span>
+                            </div>
+                          </div>
+                          {ponto.horas_liquidas > 0 && (
+                            <div className="mt-2">
+                              <span className="text-gray-600">Horas de Estágio: </span>
+                              <span className="font-bold text-publievo-orange-600">
+                                {ponto.horas_liquidas}h
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditandoPonto(ponto)}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Editar
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
