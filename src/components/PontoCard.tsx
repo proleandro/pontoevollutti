@@ -5,15 +5,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Clock, CheckCircle, AlertCircle, LogIn, LogOut } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, LogIn, LogOut, Monitor } from 'lucide-react';
 
 export function PontoCard() {
   const [pontoHoje, setPontoHoje] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
   useEffect(() => {
+    // Detectar se é dispositivo móvel
+    const checkIfMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
+      return mobileKeywords.some(keyword => userAgent.includes(keyword)) || window.innerWidth <= 768;
+    };
+
+    setIsMobile(checkIfMobile());
+
     if (user) {
       carregarPontoHoje();
     }
@@ -201,28 +211,41 @@ export function PontoCard() {
             </div>
           )}
 
+          {/* Restrição Mobile */}
+          {isMobile && (
+            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl">
+              <div className="flex items-center space-x-3">
+                <Monitor className="w-6 h-6 text-yellow-600" />
+                <div>
+                  <h4 className="font-semibold text-yellow-800">Acesso via Desktop</h4>
+                  <p className="text-sm text-yellow-700">Registre seu ponto pelo PC.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Botões de Ação */}
           <div className="space-y-3">
             {!pontoHoje?.entrada ? (
               <Button
                 onClick={registrarEntrada}
-                disabled={loading}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1"
+                disabled={loading || isMobile}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1"
               >
                 <div className="flex items-center space-x-2">
                   <LogIn className="w-4 h-4" />
-                  <span>Registrar Entrada</span>
+                  <span>{isMobile ? 'Registre seu ponto pelo PC' : 'Registrar Entrada'}</span>
                 </div>
               </Button>
             ) : !pontoHoje?.saida ? (
               <Button
                 onClick={registrarSaida}
-                disabled={loading}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1"
+                disabled={loading || isMobile}
+                className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1"
               >
                 <div className="flex items-center space-x-2">
                   <LogOut className="w-4 h-4" />
-                  <span>Registrar Saída</span>
+                  <span>{isMobile ? 'Registre seu ponto pelo PC' : 'Registrar Saída'}</span>
                 </div>
               </Button>
             ) : (
@@ -274,6 +297,7 @@ export function PontoCard() {
               <p>• Jornada semanal de 30 horas de estágio</p>
               <p>• Horário de almoço: 12:00 às 13:00 (fixo)</p>
               <p>• Marcação automática pela hora do sistema</p>
+              <p>• Todos os horários de estágio foram definidos previamente pelo estudante</p>
               <p>• Consulte seu resumo semanal regularmente</p>
             </div>
           </CardContent>

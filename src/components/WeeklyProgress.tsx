@@ -265,6 +265,7 @@ export function WeeklyProgress() {
             <p>• Jornada semanal de 30 horas de estágio</p>
             <p>• Horário de almoço: 12:00 às 13:00 (fixo)</p>
             <p>• Marcação automática pela hora do sistema</p>
+            <p>• Todos os horários de estágio foram definidos previamente pelo estudante</p>
             <p>• Consulte seu resumo semanal regularmente</p>
           </div>
         </CardContent>
