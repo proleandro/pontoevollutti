@@ -1,16 +1,16 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { NovoColaboradorForm } from './NovoColaboradorForm';
 import { AdminPontoForm } from './AdminPontoForm';
-import { Users, Calendar, FileText, Download, UserPlus, Settings, Edit, Clock, Plus } from 'lucide-react';
+import { Users, Calendar, FileText, Download, UserPlus, Settings, Edit, Clock, Plus, Trash2 } from 'lucide-react';
 
 export function AdminPanel() {
   const [activeSection, setActiveSection] = useState('colaboradores');
@@ -19,6 +19,7 @@ export function AdminPanel() {
   const [editandoPonto, setEditandoPonto] = useState<any>(null);
   const [mostrandoFormulario, setMostrandoFormulario] = useState(false);
   const [mostrandoLancamento, setMostrandoLancamento] = useState(false);
+  const [mostrandoConfirmacao, setMostrandoConfirmacao] = useState<any>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -109,6 +110,38 @@ export function AdminPanel() {
       toast({
         title: "Erro",
         description: "Erro ao salvar alterações",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const excluirPonto = async (pontoId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ponto_registros')
+        .delete()
+        .eq('id', pontoId);
+
+      if (error) {
+        toast({
+          title: "Erro",
+          description: "Erro ao excluir ponto: " + error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Ponto excluído com sucesso!",
+      });
+
+      setMostrandoConfirmacao(null);
+      carregarPontos();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir ponto",
         variant: "destructive"
       });
     }
@@ -261,16 +294,18 @@ export function AdminPanel() {
                     <span>Gestão de Pontos dos Estagiários</span>
                   </CardTitle>
                   <CardDescription>
-                    Visualize e edite os registros de ponto dos estagiários para lançamentos retroativos
+                    Visualize, edite e gerencie os registros de ponto dos estagiários
                   </CardDescription>
                 </div>
-                <Button 
-                  onClick={() => setMostrandoLancamento(!mostrandoLancamento)}
-                  className="bg-gradient-publievo hover:opacity-90 text-white"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  {mostrandoLancamento ? 'Cancelar' : 'Lançar Ponto'}
-                </Button>
+                <div className="flex space-x-2">
+                  <Button 
+                    onClick={() => setMostrandoLancamento(!mostrandoLancamento)}
+                    className="bg-gradient-publievo hover:opacity-90 text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {mostrandoLancamento ? 'Cancelar' : 'Lançar Ponto'}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -285,47 +320,64 @@ export function AdminPanel() {
                   pontos.map((ponto) => (
                     <div
                       key={ponto.id}
-                      className="p-4 rounded-xl bg-gradient-publievo-soft hover:shadow-md transition-shadow"
+                      className="p-6 rounded-xl bg-gradient-publievo-soft hover:shadow-md transition-shadow border border-gray-100"
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-semibold text-gray-800">
-                            {ponto.users?.nome} - {ponto.users?.cargo}
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            Data: {formatarData(ponto.data)}
-                          </p>
-                          <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="text-gray-600">Entrada: </span>
-                              <span className="font-medium">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="font-semibold text-gray-800 text-lg">
+                              {ponto.users?.nome} - {ponto.users?.cargo}
+                            </h4>
+                            <span className="text-sm font-medium text-gray-600 bg-white px-3 py-1 rounded-full">
+                              {formatarData(ponto.data)}
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div className="bg-white p-4 rounded-lg border">
+                              <span className="text-sm text-gray-500 block mb-1">Entrada</span>
+                              <span className="font-semibold text-gray-800">
                                 {formatarDataHora(ponto.entrada)}
                               </span>
                             </div>
-                            <div>
-                              <span className="text-gray-600">Saída: </span>
-                              <span className="font-medium">
+                            <div className="bg-white p-4 rounded-lg border">
+                              <span className="text-sm text-gray-500 block mb-1">Saída</span>
+                              <span className="font-semibold text-gray-800">
                                 {formatarDataHora(ponto.saida)}
                               </span>
                             </div>
                           </div>
+                          
                           {ponto.horas_liquidas > 0 && (
-                            <div className="mt-2">
-                              <span className="text-gray-600">Horas de Estágio: </span>
-                              <span className="font-bold text-publievo-orange-600">
+                            <div className="bg-gradient-to-r from-publievo-orange-50 to-publievo-purple-50 p-4 rounded-lg border">
+                              <span className="text-sm text-gray-600 block mb-1">Horas de Estágio</span>
+                              <span className="text-xl font-bold text-publievo-orange-600">
                                 {ponto.horas_liquidas}h
                               </span>
                             </div>
                           )}
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditandoPonto(ponto)}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Editar
-                        </Button>
+                        
+                        <div className="flex flex-col space-y-2 ml-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditandoPonto(ponto)}
+                            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setMostrandoConfirmacao(ponto)}
+                            className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Excluir
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -334,50 +386,95 @@ export function AdminPanel() {
             </CardContent>
           </Card>
 
-          {/* Modal de Edição */}
+          {/* Modal de Edição Modernizado */}
           {editandoPonto && (
-            <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Editar Ponto - {editandoPonto.users?.nome}</CardTitle>
-                <CardDescription>
-                  Data: {formatarData(editandoPonto.data)}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+            <Dialog open={!!editandoPonto} onOpenChange={() => setEditandoPonto(null)}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center space-x-2">
+                    <Edit className="w-5 h-5 text-publievo-orange-500" />
+                    <span>Editar Ponto</span>
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editandoPonto.users?.nome} - {formatarData(editandoPonto.data)}
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label>Entrada</Label>
+                    <Label htmlFor="entrada" className="text-sm font-medium">Entrada</Label>
                     <Input
+                      id="entrada"
                       type="datetime-local"
                       value={editandoPonto.entrada ? new Date(editandoPonto.entrada).toISOString().slice(0, 16) : ''}
                       onChange={(e) => setEditandoPonto({
                         ...editandoPonto,
                         entrada: e.target.value ? new Date(e.target.value).toISOString() : null
                       })}
+                      className="w-full"
                     />
                   </div>
+                  
                   <div className="space-y-2">
-                    <Label>Saída</Label>
+                    <Label htmlFor="saida" className="text-sm font-medium">Saída</Label>
                     <Input
+                      id="saida"
                       type="datetime-local"
                       value={editandoPonto.saida ? new Date(editandoPonto.saida).toISOString().slice(0, 16) : ''}
                       onChange={(e) => setEditandoPonto({
                         ...editandoPonto,
                         saida: e.target.value ? new Date(e.target.value).toISOString() : null
                       })}
+                      className="w-full"
                     />
                   </div>
                 </div>
-                <div className="flex space-x-2">
-                  <Button onClick={salvarEdicaoPonto} className="bg-gradient-publievo hover:opacity-90">
-                    Salvar
-                  </Button>
+                
+                <DialogFooter className="flex space-x-2">
                   <Button variant="outline" onClick={() => setEditandoPonto(null)}>
                     Cancelar
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  <Button 
+                    onClick={salvarEdicaoPonto} 
+                    className="bg-gradient-publievo hover:opacity-90 text-white"
+                  >
+                    Salvar Alterações
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {/* Modal de Confirmação de Exclusão */}
+          {mostrandoConfirmacao && (
+            <Dialog open={!!mostrandoConfirmacao} onOpenChange={() => setMostrandoConfirmacao(null)}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center space-x-2">
+                    <Trash2 className="w-5 h-5 text-red-500" />
+                    <span>Confirmar Exclusão</span>
+                  </DialogTitle>
+                  <DialogDescription>
+                    Tem certeza que deseja excluir o ponto de {mostrandoConfirmacao.users?.nome} do dia {formatarData(mostrandoConfirmacao.data)}?
+                    <br />
+                    <span className="text-red-600 font-medium">Esta ação não pode ser desfeita.</span>
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <DialogFooter className="flex space-x-2">
+                  <Button variant="outline" onClick={() => setMostrandoConfirmacao(null)}>
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={() => excluirPonto(mostrandoConfirmacao.id)}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Excluir Ponto
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       )}
