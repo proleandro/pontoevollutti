@@ -1,10 +1,11 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   user: User | null;
-  login: () => Promise<{ success: boolean; error?: string }>;
+  login: (loginName: string, senha: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
@@ -24,25 +25,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (): Promise<{ success: boolean; error?: string }> => {
+  const login = async (loginName: string, senha: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);
       
-      // Criar um usuário admin padrão sem necessidade de autenticação
-      const defaultUser: User = {
-        id: 'admin-default',
-        nome: 'Administrador',
-        email: 'admin@publievo.com',
-        cpf: '000.000.000-00',
-        cargo: 'Administrador',
-        tipo: 'admin'
+      console.log('Tentando fazer login com:', { loginName, senha });
+      
+      // Buscar usuário no Supabase pela coluna 'nome' (que funciona como login)
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('nome', loginName)
+        .single();
+
+      if (userError) {
+        console.error('Erro ao buscar usuário:', userError);
+        return { 
+          success: false, 
+          error: 'Usuário não encontrado' 
+        };
+      }
+
+      if (!userData) {
+        return { 
+          success: false, 
+          error: 'Usuário não encontrado' 
+        };
+      }
+
+      // Verificar senha
+      if (userData.senha !== senha) {
+        console.log('Senha incorreta para usuário:', loginName);
+        return { 
+          success: false, 
+          error: 'Senha incorreta' 
+        };
+      }
+
+      // Login bem-sucedido
+      const loggedUser: User = {
+        id: userData.id,
+        nome: userData.nome,
+        email: userData.email,
+        cpf: userData.cpf,
+        cargo: userData.cargo,
+        tipo: userData.tipo
       };
       
-      setUser(defaultUser);
-      localStorage.setItem('currentUser', JSON.stringify(defaultUser));
+      console.log('Login bem-sucedido:', loggedUser);
+      
+      setUser(loggedUser);
+      localStorage.setItem('currentUser', JSON.stringify(loggedUser));
       return { success: true };
+      
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Erro no login:', error);
       return { 
         success: false, 
         error: 'Erro interno. Tente novamente em alguns instantes.' 

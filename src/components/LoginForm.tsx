@@ -1,21 +1,43 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { User, Clock } from 'lucide-react';
+import { User, Clock, Eye, EyeOff } from 'lucide-react';
 
 export function LoginForm() {
+  const [formData, setFormData] = useState({
+    login: '',
+    senha: ''
+  });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
 
-  const handleSubmit = async () => {
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.login.trim() || !formData.senha.trim()) {
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha usuário e senha",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const result = await login();
+      const result = await login(formData.login, formData.senha);
       if (result.success) {
         toast({
           title: "Acesso liberado!",
@@ -23,8 +45,8 @@ export function LoginForm() {
         });
       } else {
         toast({
-          title: "Erro",
-          description: result.error || "Erro ao acessar",
+          title: "Erro de acesso",
+          description: result.error || "Usuário ou senha incorretos",
           variant: "destructive",
         });
       }
@@ -56,34 +78,71 @@ export function LoginForm() {
           </div>
         </div>
 
-        {/* Formulário de Acesso Simplificado */}
+        {/* Formulário de Login */}
         <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-2xl text-center text-gray-800">
-              Acessar Sistema
+              Acesso ao Sistema
             </CardTitle>
             <CardDescription className="text-center text-gray-600">
-              Clique no botão abaixo para acessar o sistema
+              Digite seu usuário e senha para acessar
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Button
-              onClick={handleSubmit}
-              className="w-full bg-gradient-publievo hover:opacity-90 text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1"
-              disabled={loading}
-            >
-              {loading ? (
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Carregando...</span>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="login">Usuário</Label>
+                <Input
+                  id="login"
+                  type="text"
+                  placeholder="Digite seu usuário"
+                  value={formData.login}
+                  onChange={(e) => handleInputChange('login', e.target.value)}
+                  required
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="senha">Senha</Label>
+                <div className="relative">
+                  <Input
+                    id="senha"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Digite sua senha"
+                    value={formData.senha}
+                    onChange={(e) => handleInputChange('senha', e.target.value)}
+                    required
+                    className="h-12 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <User className="w-4 h-4" />
-                  <span>Entrar</span>
-                </div>
-              )}
-            </Button>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-publievo hover:opacity-90 text-white font-semibold py-3 h-12 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1"
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Entrando...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <User className="w-4 h-4" />
+                    <span>Entrar</span>
+                  </div>
+                )}
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
