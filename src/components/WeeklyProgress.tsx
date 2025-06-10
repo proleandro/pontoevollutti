@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, TrendingUp, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Calendar, TrendingUp, Clock, CheckCircle, AlertTriangle, LogIn, LogOut, Coffee } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { WeeklyProgressUpdater } from './WeeklyProgressUpdater';
@@ -66,7 +67,7 @@ export function WeeklyProgress() {
     carregarDadosSemanais();
   }, [user?.id]);
 
-  const getDiaStatus = (diaIndex: number) => {
+  const getDiaInfo = (diaIndex: number) => {
     const hoje = new Date();
     const diaSemana = hoje.getDay();
     
@@ -77,20 +78,21 @@ export function WeeklyProgress() {
     });
 
     if (pontoDoDia) {
-      if (pontoDoDia.entrada && pontoDoDia.saida) {
-        return { status: 'concluido', horas: pontoDoDia.horas_liquidas || 0 };
-      } else {
-        return { status: 'pendente', horas: 0 };
-      }
+      return {
+        status: pontoDoDia.entrada && pontoDoDia.saida ? 'concluido' : 'pendente',
+        entrada: pontoDoDia.entrada ? new Date(pontoDoDia.entrada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null,
+        saida: pontoDoDia.saida ? new Date(pontoDoDia.saida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null,
+        horas: pontoDoDia.horas_liquidas || 0
+      };
     }
 
     // Domingo é sempre folga
     if (diaIndex === 0) {
-      return { status: 'folga', horas: 0 };
+      return { status: 'folga', entrada: null, saida: null, horas: 0 };
     }
 
     // Dias futuros ou sem registro
-    return { status: 'pendente', horas: 0 };
+    return { status: 'pendente', entrada: null, saida: null, horas: 0 };
   };
 
   const horasRestantes = Math.max(0, metaSemanal - horasEstagio);
@@ -182,36 +184,67 @@ export function WeeklyProgress() {
             <span>Detalhamento Semanal</span>
           </CardTitle>
           <CardDescription>
-            Horas de estágio por dia da semana atual
+            Registro de entrada e saída por dia da semana
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {diasSemana.map((dia, index) => {
-              const diaInfo = getDiaStatus(dia.index);
+              const diaInfo = getDiaInfo(dia.index);
               return (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-4 rounded-xl bg-gradient-publievo-soft hover:shadow-md transition-shadow"
+                  className="border rounded-xl p-4 bg-gradient-to-r from-gray-50 to-white hover:shadow-md transition-all duration-200"
                 >
-                  <div className="flex items-center space-x-3">
-                    {diaInfo.status === 'concluido' && <CheckCircle className="w-5 h-5 text-green-500" />}
-                    {diaInfo.status === 'pendente' && <Clock className="w-5 h-5 text-yellow-500" />}
-                    {diaInfo.status === 'folga' && <Calendar className="w-5 h-5 text-gray-400" />}
-                    <div>
-                      <p className="font-medium text-gray-800">{dia.dia}</p>
-                      <p className="text-sm text-gray-600">
-                        {diaInfo.status === 'folga' ? 'Dia de folga' : 
-                         diaInfo.status === 'pendente' ? 'Aguardando registro' : 
-                         'Registrado'}
-                      </p>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      {diaInfo.status === 'concluido' && <CheckCircle className="w-6 h-6 text-green-500" />}
+                      {diaInfo.status === 'pendente' && <Clock className="w-6 h-6 text-yellow-500" />}
+                      {diaInfo.status === 'folga' && <Coffee className="w-6 h-6 text-gray-400" />}
+                      <div>
+                        <h3 className="font-semibold text-gray-800 text-lg">{dia.dia}</h3>
+                        <p className="text-sm text-gray-500">
+                          {diaInfo.status === 'folga' ? 'Dia de folga' : 
+                           diaInfo.status === 'pendente' ? 'Aguardando registro' : 
+                           'Ponto registrado'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-publievo-orange-600">
+                        {diaInfo.horas > 0 ? `${diaInfo.horas.toFixed(1)}h` : '-'}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-publievo-orange-600">
-                      {diaInfo.horas > 0 ? `${diaInfo.horas.toFixed(1)}h` : '-'}
-                    </p>
-                  </div>
+
+                  {/* Informações de Entrada e Saída */}
+                  {diaInfo.status !== 'folga' && (
+                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-100">
+                      <div className="flex items-center space-x-2">
+                        <div className="p-2 rounded-lg bg-green-100">
+                          <LogIn className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase font-medium">Entrada</p>
+                          <p className="text-sm font-semibold text-gray-800">
+                            {diaInfo.entrada || '--:--'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <div className="p-2 rounded-lg bg-red-100">
+                          <LogOut className="w-4 h-4 text-red-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase font-medium">Saída</p>
+                          <p className="text-sm font-semibold text-gray-800">
+                            {diaInfo.saida || '--:--'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
