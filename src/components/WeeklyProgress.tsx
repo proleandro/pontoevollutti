@@ -219,22 +219,6 @@ export function WeeklyProgress() {
         </CardContent>
       </Card>
 
-      {/* Sistema em Preparação */}
-      <Card className="border-0 shadow-xl bg-gradient-to-r from-blue-50 to-cyan-50 border-l-4 border-l-blue-400">
-        <CardContent className="p-6">
-          <div className="flex items-start space-x-3">
-            <Clock className="w-6 h-6 text-blue-600 mt-1" />
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-2">Sistema em Preparação</h4>
-              <p className="text-gray-700">
-                O sistema está sendo preparado para uso. Os administradores farão os lançamentos retroativos necessários, 
-                e a partir de amanhã os estagiários poderão usar o registro automático de ponto.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Lembretes */}
       <Card className="border-0 shadow-xl bg-gradient-to-r from-publievo-purple-50 to-publievo-orange-50">
         <CardHeader>
