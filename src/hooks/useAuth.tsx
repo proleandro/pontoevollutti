@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: 'admin-default',
         nome: 'Administrador',
         email: 'admin@publievo.com',
+        cpf: '000.000.000-00',
         cargo: 'Administrador',
         tipo: 'admin'
       };
