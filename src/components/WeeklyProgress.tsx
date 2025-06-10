@@ -4,22 +4,22 @@ import { Progress } from '@/components/ui/progress';
 import { Calendar, TrendingUp, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 
 export function WeeklyProgress() {
-  // Mock data para demonstração
-  const horasTrabalhadas = 22.5;
+  // Dados zerados até o início oficial do sistema
+  const horasEstagio = 0;
   const metaSemanal = 30;
-  const progresso = (horasTrabalhadas / metaSemanal) * 100;
+  const progresso = (horasEstagio / metaSemanal) * 100;
   
   const diasSemana = [
-    { dia: 'Segunda', horas: 6, status: 'concluido' },
-    { dia: 'Terça', horas: 5.5, status: 'concluido' },
-    { dia: 'Quarta', horas: 6, status: 'concluido' },
-    { dia: 'Quinta', horas: 5, status: 'concluido' },
+    { dia: 'Segunda', horas: 0, status: 'pendente' },
+    { dia: 'Terça', horas: 0, status: 'pendente' },
+    { dia: 'Quarta', horas: 0, status: 'pendente' },
+    { dia: 'Quinta', horas: 0, status: 'pendente' },
     { dia: 'Sexta', horas: 0, status: 'pendente' },
     { dia: 'Sábado', horas: 0, status: 'pendente' },
     { dia: 'Domingo', horas: 0, status: 'folga' },
   ];
 
-  const horasRestantes = Math.max(0, metaSemanal - horasTrabalhadas);
+  const horasRestantes = Math.max(0, metaSemanal - horasEstagio);
 
   return (
     <div className="space-y-8">
@@ -29,8 +29,8 @@ export function WeeklyProgress() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm opacity-90">Horas Trabalhadas</p>
-                <p className="text-3xl font-bold">{horasTrabalhadas}h</p>
+                <p className="text-sm opacity-90">Horas de Estágio</p>
+                <p className="text-3xl font-bold">{horasEstagio}h</p>
               </div>
               <Clock className="w-8 h-8 opacity-80" />
             </div>
@@ -70,7 +70,7 @@ export function WeeklyProgress() {
             <span>Progresso Semanal</span>
           </CardTitle>
           <CardDescription>
-            Acompanhe o progresso da sua jornada semanal de 30 horas
+            Acompanhe o progresso da sua jornada semanal de 30 horas de estágio
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -87,8 +87,8 @@ export function WeeklyProgress() {
           
           <div className="flex justify-between items-center pt-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-publievo-orange-600">{horasTrabalhadas}h</p>
-              <p className="text-sm text-gray-600">Trabalhadas</p>
+              <p className="text-2xl font-bold text-publievo-orange-600">{horasEstagio}h</p>
+              <p className="text-sm text-gray-600">De Estágio</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-publievo-purple-600">{metaSemanal}h</p>
@@ -106,7 +106,7 @@ export function WeeklyProgress() {
             <span>Detalhamento Semanal</span>
           </CardTitle>
           <CardDescription>
-            Horas trabalhadas por dia da semana atual
+            Horas de estágio por dia da semana atual
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -140,43 +140,39 @@ export function WeeklyProgress() {
         </CardContent>
       </Card>
 
-      {/* Alertas e Recomendações */}
-      {horasRestantes > 0 && (
-        <Card className="border-0 shadow-xl bg-gradient-to-r from-yellow-50 to-orange-50 border-l-4 border-l-yellow-400">
-          <CardContent className="p-6">
-            <div className="flex items-start space-x-3">
-              <AlertTriangle className="w-6 h-6 text-yellow-600 mt-1" />
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-2">Atenção!</h4>
-                <p className="text-gray-700">
-                  Você ainda precisa trabalhar <strong>{horasRestantes}h</strong> para atingir sua meta semanal de 30 horas.
-                  {horasRestantes <= 8 && (
-                    <span className="block mt-1 text-green-700">
-                      ✨ Quase lá! Apenas {horasRestantes}h restantes.
-                    </span>
-                  )}
-                </p>
-              </div>
+      {/* Sistema em Preparação */}
+      <Card className="border-0 shadow-xl bg-gradient-to-r from-blue-50 to-cyan-50 border-l-4 border-l-blue-400">
+        <CardContent className="p-6">
+          <div className="flex items-start space-x-3">
+            <Clock className="w-6 h-6 text-blue-600 mt-1" />
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-2">Sistema em Preparação</h4>
+              <p className="text-gray-700">
+                O sistema está sendo preparado para uso. Os administradores farão os lançamentos retroativos necessários, 
+                e a partir de amanhã os estagiários poderão usar o registro automático de ponto.
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
 
-      {progresso >= 100 && (
-        <Card className="border-0 shadow-xl bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-l-green-400">
-          <CardContent className="p-6">
-            <div className="flex items-start space-x-3">
-              <CheckCircle className="w-6 h-6 text-green-600 mt-1" />
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-2">Parabéns! 🎉</h4>
-                <p className="text-gray-700">
-                  Você atingiu sua meta semanal de 30 horas! Continue assim!
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Lembretes */}
+      <Card className="border-0 shadow-xl bg-gradient-to-r from-publievo-purple-50 to-publievo-orange-50">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2 text-gray-800">
+            <AlertTriangle className="w-5 h-5 text-publievo-purple-500" />
+            <span>Lembretes</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-2 text-sm text-gray-700">
+            <p>• Jornada semanal de 30 horas de estágio</p>
+            <p>• Horário de almoço: 12:00 às 13:00 (fixo)</p>
+            <p>• Marcação automática pela hora do sistema</p>
+            <p>• Consulte seu resumo semanal regularmente</p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

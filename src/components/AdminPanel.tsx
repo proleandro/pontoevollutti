@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ export function AdminPanel() {
   const { user } = useAuth();
 
   const sections = [
-    { id: 'colaboradores', label: 'Colaboradores', icon: Users },
+    { id: 'colaboradores', label: 'Estagiários', icon: Users },
     { id: 'pontos', label: 'Gestão de Pontos', icon: Clock },
     { id: 'escalas', label: 'Escalas', icon: Calendar },
     { id: 'relatorios', label: 'Relatórios', icon: FileText },
@@ -187,7 +188,7 @@ export function AdminPanel() {
                       <span>Lista de Estagiários</span>
                     </CardTitle>
                     <CardDescription>
-                      Gerencie os colaboradores do sistema
+                      Gerencie os estagiários do sistema
                     </CardDescription>
                   </div>
                   <Button 
@@ -195,7 +196,7 @@ export function AdminPanel() {
                     className="bg-gradient-publievo hover:opacity-90 text-white"
                   >
                     <UserPlus className="w-4 h-4 mr-2" />
-                    Novo Colaborador
+                    Novo Estagiário
                   </Button>
                 </div>
               </CardHeader>
@@ -204,8 +205,8 @@ export function AdminPanel() {
                   {colaboradores.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>Nenhum colaborador cadastrado</p>
-                      <p className="text-sm">Clique em "Novo Colaborador" para adicionar</p>
+                      <p>Nenhum estagiário cadastrado</p>
+                      <p className="text-sm">Clique em "Novo Estagiário" para adicionar</p>
                     </div>
                   ) : (
                     colaboradores.map((colaborador) => (
@@ -260,7 +261,7 @@ export function AdminPanel() {
                     <span>Gestão de Pontos dos Estagiários</span>
                   </CardTitle>
                   <CardDescription>
-                    Visualize e edite os registros de ponto dos colaboradores
+                    Visualize e edite os registros de ponto dos estagiários para lançamentos retroativos
                   </CardDescription>
                 </div>
                 <Button 
