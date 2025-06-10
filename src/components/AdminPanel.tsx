@@ -10,7 +10,8 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { NovoColaboradorForm } from './NovoColaboradorForm';
 import { AdminPontoForm } from './AdminPontoForm';
-import { Users, Calendar, FileText, Download, UserPlus, Settings, Edit, Clock, Plus, Trash2 } from 'lucide-react';
+import { AdminWeeklyOverview } from './AdminWeeklyOverview';
+import { Users, Calendar, FileText, Download, UserPlus, Settings, Edit, Clock, Plus, Trash2, TrendingUp } from 'lucide-react';
 
 export function AdminPanel() {
   const [activeSection, setActiveSection] = useState('colaboradores');
@@ -25,6 +26,7 @@ export function AdminPanel() {
 
   const sections = [
     { id: 'colaboradores', label: 'Estagiários', icon: Users },
+    { id: 'progresso', label: 'Progresso Semanal', icon: TrendingUp },
     { id: 'pontos', label: 'Gestão de Pontos', icon: Clock },
     { id: 'escalas', label: 'Escalas', icon: Calendar },
     { id: 'relatorios', label: 'Relatórios', icon: FileText },
@@ -272,6 +274,11 @@ export function AdminPanel() {
             </Card>
           )}
         </div>
+      )}
+
+      {/* Progresso Semanal */}
+      {activeSection === 'progresso' && (
+        <AdminWeeklyOverview />
       )}
 
       {/* Gestão de Pontos */}
