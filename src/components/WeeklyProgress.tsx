@@ -6,6 +6,10 @@ import { Calendar, TrendingUp, Clock, CheckCircle, AlertTriangle, LogIn, LogOut,
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { WeeklyProgressUpdater } from './WeeklyProgressUpdater';
+import { formatInTimeZone, toZonedTime, startOfWeek, endOfWeek } from 'date-fns-tz';
+import { ptBR } from 'date-fns/locale';
+
+const TIMEZONE = 'America/Sao_Paulo';
 
 export function WeeklyProgress() {
   const { user } = useAuth();
@@ -46,17 +50,17 @@ export function WeeklyProgress() {
     try {
       setLoading(true);
       
-      // Calcular início e fim da semana atual (domingo a sábado) usando data local
-      const hoje = new Date();
-      const domingo = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - hoje.getDay());
-      const sabado = new Date(domingo.getFullYear(), domingo.getMonth(), domingo.getDate() + 6);
+      // Calcular início e fim da semana atual no fuso horário de São Paulo
+      const agoraLocal = toZonedTime(new Date(), TIMEZONE);
+      const domingoLocal = startOfWeek(agoraLocal, { weekStartsOn: 0 });
+      const sabadoLocal = endOfWeek(agoraLocal, { weekStartsOn: 0 });
 
-      // Formatar datas para YYYY-MM-DD sem conversão de timezone
-      const domingoStr = domingo.toISOString().split('T')[0];
-      const sabadoStr = sabado.toISOString().split('T')[0];
+      // Formatar datas para YYYY-MM-DD
+      const domingoStr = formatInTimeZone(domingoLocal, TIMEZONE, 'yyyy-MM-dd');
+      const sabadoStr = formatInTimeZone(sabadoLocal, TIMEZONE, 'yyyy-MM-dd');
 
       console.log('Carregando dados semanais para:', user.id);
-      console.log('Período:', domingoStr, 'até', sabadoStr);
+      console.log('Período (SP):', domingoStr, 'até', sabadoStr);
 
       const { data: pontos, error } = await supabase
         .from('ponto_registros')
@@ -106,14 +110,12 @@ export function WeeklyProgress() {
   }, [user?.id]);
 
   const getDiaInfo = (diaIndex: number) => {
-    // Encontrar ponto do dia - CORREÇÃO: evitar problema de timezone
+    // Encontrar ponto do dia usando fuso horário local
     const pontoDoDia = pontosSemanais.find(ponto => {
-      // Usar apenas a string da data para evitar conversão de timezone
-      const dataStr = ponto.data; // formato: 'YYYY-MM-DD'
-      const dataPonto = new Date(dataStr + 'T12:00:00'); // Usar meio-dia para evitar problemas de timezone
-      const diaSemanaPonto = dataPonto.getDay();
+      const dataLocal = toZonedTime(new Date(ponto.data + 'T12:00:00'), TIMEZONE);
+      const diaSemanaPonto = dataLocal.getDay();
       
-      console.log(`Comparando data ${dataStr}, dia da semana: ${diaSemanaPonto} com ${diaIndex}`);
+      console.log(`Comparando data ${ponto.data}, dia da semana: ${diaSemanaPonto} com ${diaIndex}`);
       return diaSemanaPonto === diaIndex;
     });
 
@@ -128,8 +130,8 @@ export function WeeklyProgress() {
 
       return {
         status: pontoDoDia.entrada && pontoDoDia.saida ? 'concluido' : 'pendente',
-        entrada: pontoDoDia.entrada ? new Date(pontoDoDia.entrada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null,
-        saida: pontoDoDia.saida ? new Date(pontoDoDia.saida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null,
+        entrada: pontoDoDia.entrada ? formatInTimeZone(new Date(pontoDoDia.entrada), TIMEZONE, 'HH:mm') : null,
+        saida: pontoDoDia.saida ? formatInTimeZone(new Date(pontoDoDia.saida), TIMEZONE, 'HH:mm') : null,
         horas: horas
       };
     }
@@ -247,7 +249,7 @@ export function WeeklyProgress() {
             <span>Detalhamento Semanal</span>
           </CardTitle>
           <CardDescription>
-            Registro de entrada, saída e total de horas por dia da semana
+            Registro de entrada, saída e total de horas por dia da semana (Horário de São Paulo)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -339,7 +341,7 @@ export function WeeklyProgress() {
           <div className="space-y-2 text-sm text-gray-700">
             <p>• Jornada semanal de 30 horas de estágio</p>
             <p>• Horário de almoço: 12:00 às 13:00 (descontado automaticamente)</p>
-            <p>• Marcação automática pela hora do sistema</p>
+            <p>• Marcação automática no horário de São Paulo</p>
             <p>• Todos os horários de estágio foram definidos previamente pelo estudante</p>
             <p>• Consulte seu resumo semanal regularmente</p>
           </div>

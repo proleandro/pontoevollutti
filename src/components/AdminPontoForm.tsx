@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,10 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Clock, Plus, Edit, Trash2 } from 'lucide-react';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+
+const TIMEZONE = 'America/Sao_Paulo';
 
 interface AdminPontoFormProps {
   colaboradores: any[];
@@ -27,7 +31,7 @@ interface PontoRegistro {
 
 export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps) {
   const [colaboradorId, setColaboradorId] = useState('');
-  const [data, setData] = useState(new Date().toISOString().split('T')[0]);
+  const [data, setData] = useState(formatInTimeZone(new Date(), TIMEZONE, 'yyyy-MM-dd'));
   const [entrada, setEntrada] = useState('');
   const [saida, setSaida] = useState('');
   const [loading, setLoading] = useState(false);
@@ -51,9 +55,9 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
   const calcularHoras = (entrada: string, saida: string, data: string) => {
     if (!entrada || !saida) return 0;
     
-    // Criar timestamps considerando o timezone local
-    const entradaDate = new Date(`${data}T${entrada}`);
-    const saidaDate = new Date(`${data}T${saida}`);
+    // Criar timestamps no fuso horário de São Paulo
+    const entradaDate = toZonedTime(new Date(`${data}T${entrada}:00`), TIMEZONE);
+    const saidaDate = toZonedTime(new Date(`${data}T${saida}:00`), TIMEZONE);
     
     // Calcular diferença em horas, subtraindo 1 hora de almoço
     const diferencaHoras = (saidaDate.getTime() - entradaDate.getTime()) / (1000 * 60 * 60);
@@ -75,6 +79,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
         .limit(50);
 
       if (error) throw error;
+      console.log('Pontos carregados:', data);
       setPontos(data || []);
     } catch (error) {
       console.error('Erro ao carregar pontos:', error);
@@ -101,13 +106,15 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
       };
 
       if (entrada) {
-        // Criar timestamp local sem conversão UTC
-        pontoData.entrada = `${data}T${entrada}:00`;
+        // Criar timestamp no fuso horário de São Paulo
+        const entradaLocal = toZonedTime(new Date(`${data}T${entrada}:00`), TIMEZONE);
+        pontoData.entrada = formatInTimeZone(entradaLocal, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
       }
 
       if (saida) {
-        // Criar timestamp local sem conversão UTC
-        pontoData.saida = `${data}T${saida}:00`;
+        // Criar timestamp no fuso horário de São Paulo
+        const saidaLocal = toZonedTime(new Date(`${data}T${saida}:00`), TIMEZONE);
+        pontoData.saida = formatInTimeZone(saidaLocal, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
       }
 
       // Calcular horas líquidas se ambos horários estão presentes
@@ -153,7 +160,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
 
       // Limpar formulário
       setColaboradorId('');
-      setData(new Date().toISOString().split('T')[0]);
+      setData(formatInTimeZone(new Date(), TIMEZONE, 'yyyy-MM-dd'));
       setEntrada('');
       setSaida('');
       
@@ -175,8 +182,8 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
   const handleEdit = (ponto: PontoRegistro) => {
     setEditingPonto(ponto);
     setEditData(ponto.data);
-    setEditEntrada(ponto.entrada ? new Date(ponto.entrada).toTimeString().slice(0, 5) : '');
-    setEditSaida(ponto.saida ? new Date(ponto.saida).toTimeString().slice(0, 5) : '');
+    setEditEntrada(ponto.entrada ? formatInTimeZone(new Date(ponto.entrada), TIMEZONE, 'HH:mm') : '');
+    setEditSaida(ponto.saida ? formatInTimeZone(new Date(ponto.saida), TIMEZONE, 'HH:mm') : '');
     setDialogOpen(true);
   };
 
@@ -189,13 +196,15 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
       };
 
       if (editEntrada) {
-        pontoData.entrada = `${editData}T${editEntrada}:00`;
+        const entradaLocal = toZonedTime(new Date(`${editData}T${editEntrada}:00`), TIMEZONE);
+        pontoData.entrada = formatInTimeZone(entradaLocal, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
       } else {
         pontoData.entrada = null;
       }
 
       if (editSaida) {
-        pontoData.saida = `${editData}T${editSaida}:00`;
+        const saidaLocal = toZonedTime(new Date(`${editData}T${editSaida}:00`), TIMEZONE);
+        pontoData.saida = formatInTimeZone(saidaLocal, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
       } else {
         pontoData.saida = null;
       }
@@ -265,7 +274,21 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
 
   // Calcular total de horas dos pontos carregados
   const totalHorasLancadas = pontos.reduce((total, ponto) => {
-    return total + (ponto.horas_liquidas || 0);
+    // Se temos horas_liquidas no registro, usar elas
+    if (ponto.horas_liquidas && ponto.horas_liquidas > 0) {
+      return total + ponto.horas_liquidas;
+    }
+    
+    // Senão, calcular baseado em entrada e saída se ambos existem
+    if (ponto.entrada && ponto.saida) {
+      const entrada = new Date(ponto.entrada);
+      const saida = new Date(ponto.saida);
+      const diferencaHoras = (saida.getTime() - entrada.getTime()) / (1000 * 60 * 60);
+      const horasLiquidas = Math.max(0, diferencaHoras - 1); // Subtrair 1 hora de almoço
+      return total + horasLiquidas;
+    }
+    
+    return total;
   }, 0);
 
   return (
@@ -357,7 +380,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
             <div className="text-right">
               <p className="text-sm text-gray-600">Total de Horas</p>
               <p className="text-2xl font-bold text-publievo-orange-600">
-                {pontos.reduce((total, ponto) => total + (ponto.horas_liquidas || 0), 0).toFixed(1)}h
+                {totalHorasLancadas.toFixed(1)}h
               </p>
             </div>
           </CardTitle>
@@ -386,61 +409,68 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
                     </TableCell>
                   </TableRow>
                 ) : (
-                  pontos.map((ponto) => (
-                    <TableRow key={ponto.id}>
-                      <TableCell>
-                        {new Date(ponto.data).toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{ponto.colaborador.nome}</p>
-                          <p className="text-sm text-gray-500">{ponto.colaborador.cargo}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {ponto.entrada ? 
-                          new Date(ponto.entrada).toLocaleTimeString('pt-BR', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          }) : 
-                          '-'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        {ponto.saida ? 
-                          new Date(ponto.saida).toLocaleTimeString('pt-BR', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          }) : 
-                          '-'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium text-publievo-orange-600">
-                          {ponto.horas_liquidas?.toFixed(1) || '0.0'}h
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(ponto)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDelete(ponto.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  pontos.map((ponto) => {
+                    // Calcular horas para exibição
+                    let horasParaExibir = 0;
+                    if (ponto.horas_liquidas && ponto.horas_liquidas > 0) {
+                      horasParaExibir = ponto.horas_liquidas;
+                    } else if (ponto.entrada && ponto.saida) {
+                      const entrada = new Date(ponto.entrada);
+                      const saida = new Date(ponto.saida);
+                      const diferencaHoras = (saida.getTime() - entrada.getTime()) / (1000 * 60 * 60);
+                      horasParaExibir = Math.max(0, diferencaHoras - 1);
+                    }
+
+                    return (
+                      <TableRow key={ponto.id}>
+                        <TableCell>
+                          {formatInTimeZone(new Date(ponto.data), TIMEZONE, 'dd/MM/yyyy')}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{ponto.colaborador.nome}</p>
+                            <p className="text-sm text-gray-500">{ponto.colaborador.cargo}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {ponto.entrada ? 
+                            formatInTimeZone(new Date(ponto.entrada), TIMEZONE, 'HH:mm') : 
+                            '-'
+                          }
+                        </TableCell>
+                        <TableCell>
+                          {ponto.saida ? 
+                            formatInTimeZone(new Date(ponto.saida), TIMEZONE, 'HH:mm') : 
+                            '-'
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium text-publievo-orange-600">
+                            {horasParaExibir.toFixed(1)}h
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(ponto)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDelete(ponto.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

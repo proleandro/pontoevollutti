@@ -6,6 +6,9 @@ import { Clock, LogIn, LogOut, Coffee, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+
+const TIMEZONE = 'America/Sao_Paulo';
 
 export function PontoCard() {
   const { user } = useAuth();
@@ -13,21 +16,18 @@ export function PontoCard() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Função para obter a data de hoje no formato YYYY-MM-DD sem conversão de timezone
-  const getHoje = () => {
-    const agora = new Date();
-    const ano = agora.getFullYear();
-    const mes = String(agora.getMonth() + 1).padStart(2, '0');
-    const dia = String(agora.getDate()).padStart(2, '0');
-    return `${ano}-${mes}-${dia}`;
+  // Função para obter a data de hoje no fuso horário de São Paulo
+  const getHojeLocal = () => {
+    const agoraLocal = toZonedTime(new Date(), TIMEZONE);
+    return formatInTimeZone(agoraLocal, TIMEZONE, 'yyyy-MM-dd');
   };
 
   const carregarPontoHoje = async () => {
     if (!user?.id) return;
 
     try {
-      const hoje = getHoje();
-      console.log('Carregando ponto para a data:', hoje);
+      const hoje = getHojeLocal();
+      console.log('Carregando ponto para a data (SP):', hoje);
       
       const { data, error } = await supabase
         .from('ponto_registros')
@@ -57,13 +57,13 @@ export function PontoCard() {
 
     setLoading(true);
     try {
-      const agora = new Date();
-      const hoje = getHoje();
+      const agoraLocal = toZonedTime(new Date(), TIMEZONE);
+      const hoje = getHojeLocal();
       
-      // Criar timestamp no formato correto para o banco
-      const timestamp = agora.toISOString();
+      // Criar timestamp no fuso horário de São Paulo
+      const timestamp = formatInTimeZone(agoraLocal, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
       
-      console.log('Marcando ponto:', {
+      console.log('Marcando ponto (SP):', {
         data: hoje,
         timestamp: timestamp,
         temEntrada: !!pontoHoje?.entrada,
@@ -87,7 +87,7 @@ export function PontoCard() {
         setPontoHoje(data);
         toast({
           title: "Entrada registrada",
-          description: `Entrada marcada às ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+          description: `Entrada marcada às ${formatInTimeZone(agoraLocal, TIMEZONE, 'HH:mm')}`,
         });
       } else if (pontoHoje.entrada && !pontoHoje.saida) {
         // Segundo ponto do dia - saída
@@ -103,7 +103,7 @@ export function PontoCard() {
         setPontoHoje(data);
         toast({
           title: "Saída registrada",
-          description: `Saída marcada às ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+          description: `Saída marcada às ${formatInTimeZone(agoraLocal, TIMEZONE, 'HH:mm')}`,
         });
       } else {
         // Já tem entrada e saída - não pode marcar mais
@@ -151,12 +151,7 @@ export function PontoCard() {
         </CardTitle>
         <CardDescription className="flex items-center space-x-2">
           <Calendar className="w-4 h-4 text-gray-500" />
-          <span>Hoje, {new Date().toLocaleDateString('pt-BR', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}</span>
+          <span>Hoje, {formatInTimeZone(new Date(), TIMEZONE, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: require('date-fns/locale/pt-BR') })}</span>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -167,10 +162,7 @@ export function PontoCard() {
             <p className="text-xs text-green-700 font-medium mb-1">ENTRADA</p>
             <p className="text-sm font-bold text-green-800">
               {pontoHoje?.entrada ? 
-                new Date(pontoHoje.entrada).toLocaleTimeString('pt-BR', { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                }) : 
+                formatInTimeZone(new Date(pontoHoje.entrada), TIMEZONE, 'HH:mm') : 
                 '--:--'
               }
             </p>
@@ -187,10 +179,7 @@ export function PontoCard() {
             <p className="text-xs text-red-700 font-medium mb-1">SAÍDA</p>
             <p className="text-sm font-bold text-red-800">
               {pontoHoje?.saida ? 
-                new Date(pontoHoje.saida).toLocaleTimeString('pt-BR', { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                }) : 
+                formatInTimeZone(new Date(pontoHoje.saida), TIMEZONE, 'HH:mm') : 
                 '--:--'
               }
             </p>
@@ -237,7 +226,7 @@ export function PontoCard() {
 
         {/* Informações importantes */}
         <div className="text-xs text-gray-500 space-y-1 border-t pt-3">
-          <p>• Horário registrado automaticamente pelo sistema</p>
+          <p>• Horário registrado automaticamente pelo sistema (São Paulo)</p>
           <p>• Intervalo de almoço: 12:00 às 13:00 (descontado automaticamente)</p>
           <p>• Registre entrada ao chegar e saída ao final do expediente</p>
         </div>
