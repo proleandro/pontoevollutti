@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { PontoCard } from './PontoCard';
 import { WeeklyProgress } from './WeeklyProgress';
 import { AdminPanel } from './AdminPanel';
+import { AnimatedClock } from './AnimatedClock';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 
@@ -33,9 +34,12 @@ export function Dashboard() {
                 <p className="text-lg font-medium text-publievo-purple-700 mb-2">
                   Comece o dia lembrando: seu trabalho transforma empresas e vidas.
                 </p>
-                <p className="text-xl text-publievo-orange-600 font-semibold">
+                <p className="text-xl text-publievo-orange-600 font-semibold mb-4">
                   Bom dia, {user.nome}!
                 </p>
+                
+                {/* Relógio animado apenas para colaboradores */}
+                <AnimatedClock />
               </div>
             )}
             
