@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Clock, Plus, Edit, Trash2 } from 'lucide-react';
-import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone } from 'date-fns-tz';
 
 const TIMEZONE = 'America/Sao_Paulo';
 
@@ -52,16 +51,22 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
     carregarPontos();
   }, []);
 
-  const calcularHoras = (entrada: string, saida: string, data: string) => {
+  const calcularHoras = (entrada: string, saida: string) => {
     if (!entrada || !saida) return 0;
     
-    // Criar timestamps no fuso horário de São Paulo
-    const entradaDate = toZonedTime(new Date(`${data}T${entrada}:00`), TIMEZONE);
-    const saidaDate = toZonedTime(new Date(`${data}T${saida}:00`), TIMEZONE);
+    // Criar Date objects simples com os horários
+    const [horaEntrada, minutoEntrada] = entrada.split(':').map(Number);
+    const [horaSaida, minutoSaida] = saida.split(':').map(Number);
     
-    // Calcular diferença em horas, subtraindo 1 hora de almoço
-    const diferencaHoras = (saidaDate.getTime() - entradaDate.getTime()) / (1000 * 60 * 60);
-    const horasLiquidas = Math.max(0, diferencaHoras - 1); // Subtrair 1 hora de almoço
+    const entradaMinutos = horaEntrada * 60 + minutoEntrada;
+    const saidaMinutos = horaSaida * 60 + minutoSaida;
+    
+    // Calcular diferença em minutos, depois converter para horas
+    const diferencaMinutos = saidaMinutos - entradaMinutos;
+    const diferencaHoras = diferencaMinutos / 60;
+    
+    // Subtrair 1 hora de almoço
+    const horasLiquidas = Math.max(0, diferencaHoras - 1);
     
     return Number(horasLiquidas.toFixed(1));
   };
@@ -102,24 +107,22 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
     try {
       const pontoData: any = {
         colaborador_id: colaboradorId,
-        data: data
+        data: data // Usar a data exatamente como selecionada (YYYY-MM-DD)
       };
 
       if (entrada) {
-        // Criar timestamp no fuso horário de São Paulo
-        const entradaLocal = toZonedTime(new Date(`${data}T${entrada}:00`), TIMEZONE);
-        pontoData.entrada = formatInTimeZone(entradaLocal, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+        // Criar timestamp combinando a data selecionada com o horário
+        pontoData.entrada = `${data}T${entrada}:00-03:00`; // Fuso horário de SP fixo
       }
 
       if (saida) {
-        // Criar timestamp no fuso horário de São Paulo
-        const saidaLocal = toZonedTime(new Date(`${data}T${saida}:00`), TIMEZONE);
-        pontoData.saida = formatInTimeZone(saidaLocal, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+        // Criar timestamp combinando a data selecionada com o horário
+        pontoData.saida = `${data}T${saida}:00-03:00`; // Fuso horário de SP fixo
       }
 
       // Calcular horas líquidas se ambos horários estão presentes
       if (entrada && saida) {
-        pontoData.horas_liquidas = calcularHoras(entrada, saida, data);
+        pontoData.horas_liquidas = calcularHoras(entrada, saida);
       }
 
       console.log('Dados a serem enviados:', pontoData);
@@ -196,22 +199,20 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
       };
 
       if (editEntrada) {
-        const entradaLocal = toZonedTime(new Date(`${editData}T${editEntrada}:00`), TIMEZONE);
-        pontoData.entrada = formatInTimeZone(entradaLocal, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+        pontoData.entrada = `${editData}T${editEntrada}:00-03:00`;
       } else {
         pontoData.entrada = null;
       }
 
       if (editSaida) {
-        const saidaLocal = toZonedTime(new Date(`${editData}T${editSaida}:00`), TIMEZONE);
-        pontoData.saida = formatInTimeZone(saidaLocal, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+        pontoData.saida = `${editData}T${editSaida}:00-03:00`;
       } else {
         pontoData.saida = null;
       }
 
       // Calcular horas líquidas
       if (editEntrada && editSaida) {
-        pontoData.horas_liquidas = calcularHoras(editEntrada, editSaida, editData);
+        pontoData.horas_liquidas = calcularHoras(editEntrada, editSaida);
       } else {
         pontoData.horas_liquidas = 0;
       }
@@ -424,7 +425,8 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
                     return (
                       <TableRow key={ponto.id}>
                         <TableCell>
-                          {formatInTimeZone(new Date(ponto.data), TIMEZONE, 'dd/MM/yyyy')}
+                          {/* Mostrar a data exatamente como está no banco */}
+                          {new Date(ponto.data + 'T12:00:00').toLocaleDateString('pt-BR')}
                         </TableCell>
                         <TableCell>
                           <div>
