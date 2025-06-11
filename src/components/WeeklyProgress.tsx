@@ -6,7 +6,8 @@ import { Calendar, TrendingUp, Clock, CheckCircle, AlertTriangle, LogIn, LogOut,
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { WeeklyProgressUpdater } from './WeeklyProgressUpdater';
-import { formatInTimeZone, toZonedTime, startOfWeek, endOfWeek } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const TIMEZONE = 'America/Sao_Paulo';
