@@ -63,7 +63,7 @@ export function WeeklyProgress() {
       // Calcular total de horas de estágio da semana
       const totalHoras = pontos?.reduce((total, ponto) => {
         const horas = ponto.horas_liquidas || 0;
-        console.log(`Ponto ${ponto.data}: ${horas}h`);
+        console.log(`Ponto ${ponto.data}: ${horas}h (horas_liquidas no banco)`);
         return total + horas;
       }, 0) || 0;
       
@@ -81,9 +81,6 @@ export function WeeklyProgress() {
   }, [user?.id]);
 
   const getDiaInfo = (diaIndex: number) => {
-    const hoje = new Date();
-    const diaSemana = hoje.getDay();
-    
     // Encontrar ponto do dia
     const pontoDoDia = pontosSemanais.find(ponto => {
       const dataPonto = new Date(ponto.data + 'T00:00:00');
@@ -123,7 +120,6 @@ export function WeeklyProgress() {
 
   return (
     <div className="space-y-8">
-      {/* Atualizar para escutar mudanças globais se for admin/gestor, senão só do usuário */}
       <WeeklyProgressUpdater 
         onUpdate={carregarDadosSemanais} 
         userId={user?.id}
@@ -213,7 +209,7 @@ export function WeeklyProgress() {
             <span>Detalhamento Semanal</span>
           </CardTitle>
           <CardDescription>
-            Registro de entrada e saída por dia da semana
+            Registro de entrada, saída e total de horas por dia da semana
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -239,16 +235,11 @@ export function WeeklyProgress() {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-publievo-orange-600">
-                        {diaInfo.horas > 0 ? `${diaInfo.horas.toFixed(1)}h` : '-'}
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Informações de Entrada e Saída */}
+                  {/* Grid com informações detalhadas */}
                   {diaInfo.status !== 'folga' && (
-                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-100">
+                    <div className="grid grid-cols-3 gap-4 pt-3 border-t border-gray-100">
                       <div className="flex items-center space-x-2">
                         <div className="p-2 rounded-lg bg-green-100">
                           <LogIn className="w-4 h-4 text-green-600" />
@@ -269,6 +260,18 @@ export function WeeklyProgress() {
                           <p className="text-xs text-gray-500 uppercase font-medium">Saída</p>
                           <p className="text-sm font-semibold text-gray-800">
                             {diaInfo.saida || '--:--'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <div className="p-2 rounded-lg bg-publievo-orange-100">
+                          <Clock className="w-4 h-4 text-publievo-orange-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase font-medium">Total</p>
+                          <p className="text-sm font-semibold text-publievo-orange-600">
+                            {diaInfo.horas > 0 ? `${diaInfo.horas.toFixed(1)}h` : '--'}
                           </p>
                         </div>
                       </div>

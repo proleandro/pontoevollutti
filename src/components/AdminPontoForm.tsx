@@ -39,7 +39,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  // Filtrar colaboradores válidos (com ID não vazio)
+  // Filtrar colaboradores válidos
   const colaboradoresValidos = colaboradores.filter(colaborador => 
     colaborador && colaborador.id && colaborador.id.toString().trim() !== ''
   );
@@ -67,6 +67,20 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
     }
   };
 
+  const calcularHoras = (entrada: string, saida: string, data: string) => {
+    if (!entrada || !saida) return 0;
+    
+    // Criar timestamps considerando o timezone local
+    const entradaDate = new Date(`${data}T${entrada}`);
+    const saidaDate = new Date(`${data}T${saida}`);
+    
+    // Calcular diferença em horas, subtraindo 1 hora de almoço
+    const diferencaHoras = (saidaDate.getTime() - entradaDate.getTime()) / (1000 * 60 * 60);
+    const horasLiquidas = Math.max(0, diferencaHoras - 1); // Subtrair 1 hora de almoço
+    
+    return Number(horasLiquidas.toFixed(1));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -87,12 +101,21 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
       };
 
       if (entrada) {
-        pontoData.entrada = new Date(`${data}T${entrada}`).toISOString();
+        // Criar timestamp local sem conversão UTC
+        pontoData.entrada = `${data}T${entrada}:00`;
       }
 
       if (saida) {
-        pontoData.saida = new Date(`${data}T${saida}`).toISOString();
+        // Criar timestamp local sem conversão UTC
+        pontoData.saida = `${data}T${saida}:00`;
       }
+
+      // Calcular horas líquidas se ambos horários estão presentes
+      if (entrada && saida) {
+        pontoData.horas_liquidas = calcularHoras(entrada, saida, data);
+      }
+
+      console.log('Dados a serem enviados:', pontoData);
 
       // Verificar se já existe um registro para este colaborador nesta data
       const { data: existingRecord } = await supabase
@@ -163,16 +186,25 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
       const pontoData: any = {};
 
       if (editEntrada) {
-        pontoData.entrada = new Date(`${editingPonto.data}T${editEntrada}`).toISOString();
+        pontoData.entrada = `${editingPonto.data}T${editEntrada}:00`;
       } else {
         pontoData.entrada = null;
       }
 
       if (editSaida) {
-        pontoData.saida = new Date(`${editingPonto.data}T${editSaida}`).toISOString();
+        pontoData.saida = `${editingPonto.data}T${editSaida}:00`;
       } else {
         pontoData.saida = null;
       }
+
+      // Calcular horas líquidas
+      if (editEntrada && editSaida) {
+        pontoData.horas_liquidas = calcularHoras(editEntrada, editSaida, editingPonto.data);
+      } else {
+        pontoData.horas_liquidas = 0;
+      }
+
+      console.log('Dados de edição:', pontoData);
 
       const { error } = await supabase
         .from('ponto_registros')
@@ -230,6 +262,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
 
   return (
     <div className="space-y-6">
+      {/* Formulário de Lançamento */}
       <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2 text-gray-800">
@@ -315,7 +348,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
             Pontos Lançados Recentemente
           </CardTitle>
           <CardDescription>
-            Últimos 50 registros de ponto lançados manualmente
+            Últimos 50 registros de ponto com opções de editar e excluir
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -327,7 +360,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
                   <TableHead>Colaborador</TableHead>
                   <TableHead>Entrada</TableHead>
                   <TableHead>Saída</TableHead>
-                  <TableHead>Horas</TableHead>
+                  <TableHead>Total Horas</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
