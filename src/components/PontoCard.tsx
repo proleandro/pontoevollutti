@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { ptBR } from 'date-fns/locale';
 
 const TIMEZONE = 'America/Sao_Paulo';
 
@@ -151,7 +152,7 @@ export function PontoCard() {
         </CardTitle>
         <CardDescription className="flex items-center space-x-2">
           <Calendar className="w-4 h-4 text-gray-500" />
-          <span>Hoje, {formatInTimeZone(new Date(), TIMEZONE, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: require('date-fns/locale/pt-BR') })}</span>
+          <span>Hoje, {formatInTimeZone(new Date(), TIMEZONE, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</span>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
