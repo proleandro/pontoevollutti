@@ -44,6 +44,7 @@ export function AdminPanel() {
   const handlePontoSuccess = () => {
     // Callback para quando o ponto for lançado com sucesso
     console.log('Ponto lançado com sucesso');
+    // Força atualização dos dados - o WeeklyProgressUpdater vai detectar automaticamente
   };
 
   const handleCancelNovoColaborador = () => {

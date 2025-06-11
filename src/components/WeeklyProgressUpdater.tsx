@@ -10,7 +10,7 @@ interface WeeklyProgressUpdaterProps {
 export function WeeklyProgressUpdater({ onUpdate, userId }: WeeklyProgressUpdaterProps) {
   useEffect(() => {
     // Configurar listener para mudanças na tabela ponto_registros
-    const channel = supabase
+    const pontoChannel = supabase
       .channel('ponto-changes')
       .on(
         'postgres_changes',
@@ -27,8 +27,27 @@ export function WeeklyProgressUpdater({ onUpdate, userId }: WeeklyProgressUpdate
       )
       .subscribe();
 
+    // Configurar listener para mudanças na tabela escalas
+    const escalasChannel = supabase
+      .channel('escalas-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escuta INSERT, UPDATE e DELETE
+          schema: 'public',
+          table: 'escalas',
+          ...(userId && { filter: `colaborador_id=eq.${userId}` })
+        },
+        (payload) => {
+          console.log('Escala atualizada:', payload);
+          onUpdate();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(pontoChannel);
+      supabase.removeChannel(escalasChannel);
     };
   }, [onUpdate, userId]);
 

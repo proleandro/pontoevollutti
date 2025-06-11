@@ -89,6 +89,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
       setEntrada('');
       setSaida('');
       
+      // Chamar callback para atualizar dados
       onSuccess();
     } catch (error: any) {
       console.error('Erro ao lançar ponto:', error);
