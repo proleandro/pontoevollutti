@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +33,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
   const [loading, setLoading] = useState(false);
   const [pontos, setPontos] = useState<PontoRegistro[]>([]);
   const [editingPonto, setEditingPonto] = useState<PontoRegistro | null>(null);
+  const [editData, setEditData] = useState('');
   const [editEntrada, setEditEntrada] = useState('');
   const [editSaida, setEditSaida] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -174,6 +174,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
 
   const handleEdit = (ponto: PontoRegistro) => {
     setEditingPonto(ponto);
+    setEditData(ponto.data);
     setEditEntrada(ponto.entrada ? new Date(ponto.entrada).toTimeString().slice(0, 5) : '');
     setEditSaida(ponto.saida ? new Date(ponto.saida).toTimeString().slice(0, 5) : '');
     setDialogOpen(true);
@@ -183,23 +184,25 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
     if (!editingPonto) return;
 
     try {
-      const pontoData: any = {};
+      const pontoData: any = {
+        data: editData
+      };
 
       if (editEntrada) {
-        pontoData.entrada = `${editingPonto.data}T${editEntrada}:00`;
+        pontoData.entrada = `${editData}T${editEntrada}:00`;
       } else {
         pontoData.entrada = null;
       }
 
       if (editSaida) {
-        pontoData.saida = `${editingPonto.data}T${editSaida}:00`;
+        pontoData.saida = `${editData}T${editSaida}:00`;
       } else {
         pontoData.saida = null;
       }
 
       // Calcular horas líquidas
       if (editEntrada && editSaida) {
-        pontoData.horas_liquidas = calcularHoras(editEntrada, editSaida, editingPonto.data);
+        pontoData.horas_liquidas = calcularHoras(editEntrada, editSaida, editData);
       } else {
         pontoData.horas_liquidas = 0;
       }
@@ -354,7 +357,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
             <div className="text-right">
               <p className="text-sm text-gray-600">Total de Horas</p>
               <p className="text-2xl font-bold text-publievo-orange-600">
-                {totalHorasLancadas.toFixed(1)}h
+                {pontos.reduce((total, ponto) => total + (ponto.horas_liquidas || 0), 0).toFixed(1)}h
               </p>
             </div>
           </CardTitle>
@@ -451,10 +454,18 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
           <DialogHeader>
             <DialogTitle>Editar Registro de Ponto</DialogTitle>
             <DialogDescription>
-              Edite os horários de entrada e saída do colaborador (desconto automático de 1h de almoço)
+              Edite a data e os horários de entrada e saída do colaborador (desconto automático de 1h de almoço)
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Data</Label>
+              <Input
+                type="date"
+                value={editData}
+                onChange={(e) => setEditData(e.target.value)}
+              />
+            </div>
             <div className="space-y-2">
               <Label>Entrada</Label>
               <Input
