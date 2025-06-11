@@ -46,25 +46,24 @@ export function WeeklyProgress() {
     try {
       setLoading(true);
       
-      // Calcular início e fim da semana atual (domingo a sábado)
+      // Calcular início e fim da semana atual (domingo a sábado) usando data local
       const hoje = new Date();
-      const domingo = new Date(hoje);
-      domingo.setDate(hoje.getDate() - hoje.getDay());
-      domingo.setHours(0, 0, 0, 0);
-      
-      const sabado = new Date(domingo);
-      sabado.setDate(domingo.getDate() + 6);
-      sabado.setHours(23, 59, 59, 999);
+      const domingo = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - hoje.getDay());
+      const sabado = new Date(domingo.getFullYear(), domingo.getMonth(), domingo.getDate() + 6);
+
+      // Formatar datas para YYYY-MM-DD sem conversão de timezone
+      const domingoStr = domingo.toISOString().split('T')[0];
+      const sabadoStr = sabado.toISOString().split('T')[0];
 
       console.log('Carregando dados semanais para:', user.id);
-      console.log('Período:', domingo.toISOString(), 'até', sabado.toISOString());
+      console.log('Período:', domingoStr, 'até', sabadoStr);
 
       const { data: pontos, error } = await supabase
         .from('ponto_registros')
         .select('*')
         .eq('colaborador_id', user.id)
-        .gte('data', domingo.toISOString().split('T')[0])
-        .lte('data', sabado.toISOString().split('T')[0])
+        .gte('data', domingoStr)
+        .lte('data', sabadoStr)
         .order('data', { ascending: true });
 
       if (error) {
@@ -107,10 +106,15 @@ export function WeeklyProgress() {
   }, [user?.id]);
 
   const getDiaInfo = (diaIndex: number) => {
-    // Encontrar ponto do dia
+    // Encontrar ponto do dia - CORREÇÃO: evitar problema de timezone
     const pontoDoDia = pontosSemanais.find(ponto => {
-      const dataPonto = new Date(ponto.data + 'T00:00:00');
-      return dataPonto.getDay() === diaIndex;
+      // Usar apenas a string da data para evitar conversão de timezone
+      const dataStr = ponto.data; // formato: 'YYYY-MM-DD'
+      const dataPonto = new Date(dataStr + 'T12:00:00'); // Usar meio-dia para evitar problemas de timezone
+      const diaSemanaPonto = dataPonto.getDay();
+      
+      console.log(`Comparando data ${dataStr}, dia da semana: ${diaSemanaPonto} com ${diaIndex}`);
+      return diaSemanaPonto === diaIndex;
     });
 
     if (pontoDoDia) {

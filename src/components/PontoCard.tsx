@@ -1,91 +1,123 @@
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Clock, LogIn, LogOut, Coffee, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '../hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Clock, CheckCircle, AlertCircle, LogIn, LogOut, Monitor } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 export function PontoCard() {
+  const { user } = useAuth();
   const [pontoHoje, setPontoHoje] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
 
-  useEffect(() => {
-    // Detectar se é dispositivo móvel
-    const checkIfMobile = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
-      return mobileKeywords.some(keyword => userAgent.includes(keyword)) || window.innerWidth <= 768;
-    };
-
-    setIsMobile(checkIfMobile());
-
-    if (user) {
-      carregarPontoHoje();
-    }
-  }, [user]);
+  // Função para obter a data de hoje no formato YYYY-MM-DD sem conversão de timezone
+  const getHoje = () => {
+    const agora = new Date();
+    const ano = agora.getFullYear();
+    const mes = String(agora.getMonth() + 1).padStart(2, '0');
+    const dia = String(agora.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  };
 
   const carregarPontoHoje = async () => {
+    if (!user?.id) return;
+
     try {
-      const hoje = new Date().toISOString().split('T')[0];
+      const hoje = getHoje();
+      console.log('Carregando ponto para a data:', hoje);
       
       const { data, error } = await supabase
         .from('ponto_registros')
         .select('*')
-        .eq('colaborador_id', user?.id)
+        .eq('colaborador_id', user.id)
         .eq('data', hoje)
         .maybeSingle();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('Erro ao carregar ponto:', error);
         return;
       }
 
+      console.log('Ponto encontrado:', data);
       setPontoHoje(data);
     } catch (error) {
-      console.error('Erro ao carregar ponto:', error);
+      console.error('Erro ao carregar ponto do dia:', error);
     }
   };
 
-  const registrarEntrada = async () => {
-    if (!user) return;
-    
+  useEffect(() => {
+    carregarPontoHoje();
+  }, [user?.id]);
+
+  const marcarPonto = async () => {
+    if (!user?.id) return;
+
     setLoading(true);
     try {
-      const agora = new Date().toISOString();
-      const hoje = new Date().toISOString().split('T')[0];
-
-      const { error } = await supabase
-        .from('ponto_registros')
-        .insert({
-          colaborador_id: user.id,
-          data: hoje,
-          entrada: agora
-        });
-
-      if (error) {
-        toast({
-          title: "Erro",
-          description: "Erro ao registrar entrada: " + error.message,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      toast({
-        title: "Entrada registrada!",
-        description: `Entrada marcada às ${new Date().toLocaleTimeString('pt-BR')}`,
+      const agora = new Date();
+      const hoje = getHoje();
+      
+      // Criar timestamp no formato correto para o banco
+      const timestamp = agora.toISOString();
+      
+      console.log('Marcando ponto:', {
+        data: hoje,
+        timestamp: timestamp,
+        temEntrada: !!pontoHoje?.entrada,
+        temSaida: !!pontoHoje?.saida
       });
 
-      carregarPontoHoje();
-    } catch (error) {
+      if (!pontoHoje) {
+        // Primeiro ponto do dia - entrada
+        const { data, error } = await supabase
+          .from('ponto_registros')
+          .insert({
+            colaborador_id: user.id,
+            data: hoje,
+            entrada: timestamp
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setPontoHoje(data);
+        toast({
+          title: "Entrada registrada",
+          description: `Entrada marcada às ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+        });
+      } else if (pontoHoje.entrada && !pontoHoje.saida) {
+        // Segundo ponto do dia - saída
+        const { data, error } = await supabase
+          .from('ponto_registros')
+          .update({ saida: timestamp })
+          .eq('id', pontoHoje.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setPontoHoje(data);
+        toast({
+          title: "Saída registrada",
+          description: `Saída marcada às ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+        });
+      } else {
+        // Já tem entrada e saída - não pode marcar mais
+        toast({
+          title: "Ponto já completo",
+          description: "Você já registrou entrada e saída hoje",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      console.error('Erro ao marcar ponto:', error);
       toast({
         title: "Erro",
-        description: "Erro ao registrar entrada",
+        description: "Erro ao registrar ponto: " + error.message,
         variant: "destructive"
       });
     } finally {
@@ -93,216 +125,123 @@ export function PontoCard() {
     }
   };
 
-  const registrarSaida = async () => {
-    if (!user || !pontoHoje) return;
+  const calcularHorasTrabalhadas = () => {
+    if (!pontoHoje?.entrada || !pontoHoje?.saida) return 0;
     
-    setLoading(true);
-    try {
-      const agora = new Date().toISOString();
-
-      const { error } = await supabase
-        .from('ponto_registros')
-        .update({
-          saida: agora
-        })
-        .eq('id', pontoHoje.id);
-
-      if (error) {
-        toast({
-          title: "Erro",
-          description: "Erro ao registrar saída: " + error.message,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      toast({
-        title: "Saída registrada!",
-        description: `Saída marcada às ${new Date().toLocaleTimeString('pt-BR')}`,
-      });
-
-      carregarPontoHoje();
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Erro ao registrar saída",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+    const entrada = new Date(pontoHoje.entrada);
+    const saida = new Date(pontoHoje.saida);
+    
+    // Calcular diferença em horas
+    const diferencaHoras = (saida.getTime() - entrada.getTime()) / (1000 * 60 * 60);
+    
+    // Subtrair 1 hora de almoço automaticamente
+    const horasLiquidas = Math.max(0, diferencaHoras - 1);
+    
+    return horasLiquidas;
   };
 
-  const formatarHora = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const horasTrabalhadas = calcularHorasTrabalhadas();
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* Marcação de Ponto */}
-      <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-gray-800">
-            <Clock className="w-5 h-5 text-publievo-orange-500" />
-            <span>Marcação de Ponto</span>
-          </CardTitle>
-          <CardDescription>
-            Marque sua entrada e saída automaticamente
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Hora Atual */}
-          <div className="text-center p-4 bg-gradient-publievo-soft rounded-xl">
-            <p className="text-sm text-gray-600 mb-1">Hora Atual</p>
-            <p className="text-3xl font-bold text-publievo-purple-700">
-              {new Date().toLocaleTimeString('pt-BR')}
-            </p>
-            <p className="text-sm text-gray-600">
-              {new Date().toLocaleDateString('pt-BR', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
+    <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-gray-50/50 backdrop-blur-sm">
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2 text-gray-800">
+          <Clock className="w-5 h-5 text-publievo-orange-500" />
+          <span>Ponto Eletrônico</span>
+        </CardTitle>
+        <CardDescription className="flex items-center space-x-2">
+          <Calendar className="w-4 h-4 text-gray-500" />
+          <span>Hoje, {new Date().toLocaleDateString('pt-BR', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}</span>
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Status atual */}
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center p-4 rounded-lg bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+            <LogIn className="w-6 h-6 text-green-600 mx-auto mb-2" />
+            <p className="text-xs text-green-700 font-medium mb-1">ENTRADA</p>
+            <p className="text-sm font-bold text-green-800">
+              {pontoHoje?.entrada ? 
+                new Date(pontoHoje.entrada).toLocaleTimeString('pt-BR', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                }) : 
+                '--:--'
+              }
             </p>
           </div>
 
-          {/* Registros do Dia */}
-          {pontoHoje && (
-            <div className="bg-white p-4 rounded-xl border border-gray-200">
-              <h4 className="font-semibold text-gray-700 mb-3">Registros de Hoje</h4>
-              <div className="space-y-2 text-sm">
-                {pontoHoje.entrada && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Entrada:</span>
-                    <span className="font-semibold text-green-600">
-                      {formatarHora(pontoHoje.entrada)}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Saída Almoço:</span>
-                  <span className="font-semibold text-publievo-purple-700">12:00</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Retorno Almoço:</span>
-                  <span className="font-semibold text-publievo-purple-700">13:00</span>
-                </div>
-                {pontoHoje.saida && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Saída:</span>
-                    <span className="font-semibold text-red-600">
-                      {formatarHora(pontoHoje.saida)}
-                    </span>
-                  </div>
-                )}
-                {pontoHoje.horas_liquidas > 0 && (
-                  <div className="flex justify-between border-t pt-2 mt-2">
-                    <span className="text-gray-600">Horas de Estágio:</span>
-                    <span className="text-xl font-bold text-publievo-orange-600">
-                      {pontoHoje.horas_liquidas}h
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Restrição Mobile */}
-          {isMobile && (
-            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl">
-              <div className="flex items-center space-x-3">
-                <Monitor className="w-6 h-6 text-yellow-600" />
-                <div>
-                  <h4 className="font-semibold text-yellow-800">Acesso via Desktop</h4>
-                  <p className="text-sm text-yellow-700">Registre seu ponto pelo PC.</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Botões de Ação */}
-          <div className="space-y-3">
-            {!pontoHoje?.entrada ? (
-              <Button
-                onClick={registrarEntrada}
-                disabled={loading || isMobile}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1"
-              >
-                <div className="flex items-center space-x-2">
-                  <LogIn className="w-4 h-4" />
-                  <span>{isMobile ? 'Registre seu ponto pelo PC' : 'Registrar Entrada'}</span>
-                </div>
-              </Button>
-            ) : !pontoHoje?.saida ? (
-              <Button
-                onClick={registrarSaida}
-                disabled={loading || isMobile}
-                className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1"
-              >
-                <div className="flex items-center space-x-2">
-                  <LogOut className="w-4 h-4" />
-                  <span>{isMobile ? 'Registre seu ponto pelo PC' : 'Registrar Saída'}</span>
-                </div>
-              </Button>
-            ) : (
-              <div className="w-full bg-gray-100 text-gray-600 font-semibold py-3 rounded-xl text-center">
-                <div className="flex items-center justify-center space-x-2">
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Ponto Completo</span>
-                </div>
-              </div>
-            )}
+          <div className="text-center p-4 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200">
+            <Coffee className="w-6 h-6 text-orange-600 mx-auto mb-2" />
+            <p className="text-xs text-orange-700 font-medium mb-1">ALMOÇO</p>
+            <p className="text-sm font-bold text-orange-800">12:00-13:00</p>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Status e Informações */}
-      <div className="space-y-6">
-        {/* Status Atual */}
-        <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-gray-800">Status Atual</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${
-                pontoHoje?.saida ? 'bg-gray-500' : pontoHoje?.entrada ? 'bg-green-500' : 'bg-yellow-500'
-              } animate-pulse`}></div>
-              <span className="font-medium">
-                {pontoHoje?.saida 
-                  ? 'Expediente finalizado' 
-                  : pontoHoje?.entrada 
-                    ? 'Em expediente' 
-                    : 'Aguardando entrada'
-                }
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+          <div className="text-center p-4 rounded-lg bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
+            <LogOut className="w-6 h-6 text-red-600 mx-auto mb-2" />
+            <p className="text-xs text-red-700 font-medium mb-1">SAÍDA</p>
+            <p className="text-sm font-bold text-red-800">
+              {pontoHoje?.saida ? 
+                new Date(pontoHoje.saida).toLocaleTimeString('pt-BR', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                }) : 
+                '--:--'
+              }
+            </p>
+          </div>
+        </div>
 
-        {/* Lembretes */}
-        <Card className="border-0 shadow-xl bg-gradient-to-r from-publievo-purple-50 to-publievo-orange-50">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-gray-800">
-              <AlertCircle className="w-5 h-5 text-publievo-purple-500" />
-              <span>Lembretes</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2 text-sm text-gray-700">
-              <p>• Jornada semanal de 30 horas de estágio</p>
-              <p>• Horário de almoço: 12:00 às 13:00 (fixo)</p>
-              <p>• Marcação automática pela hora do sistema</p>
-              <p>• Todos os horários de estágio foram definidos previamente pelo estudante</p>
-              <p>• Consulte seu resumo semanal regularmente</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        {/* Horas trabalhadas */}
+        {pontoHoje?.entrada && pontoHoje?.saida && (
+          <div className="text-center p-4 bg-gradient-to-r from-publievo-purple-50 to-publievo-orange-50 rounded-lg border">
+            <p className="text-sm text-gray-600 mb-1">Total de Horas de Estágio</p>
+            <p className="text-3xl font-bold text-publievo-orange-600">
+              {horasTrabalhadas.toFixed(1)}h
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              (Desconto automático de 1h de almoço)
+            </p>
+          </div>
+        )}
+
+        {/* Botão de marcar ponto */}
+        <div className="space-y-3">
+          <Button 
+            onClick={marcarPonto}
+            disabled={loading || (pontoHoje?.entrada && pontoHoje?.saida)}
+            className="w-full bg-gradient-publievo hover:opacity-90 text-white font-semibold py-3 text-lg"
+          >
+            <Clock className="w-5 h-5 mr-2" />
+            {loading ? 
+              'Marcando...' : 
+              !pontoHoje ? 
+                'Marcar Entrada' : 
+                !pontoHoje.saida ? 
+                  'Marcar Saída' : 
+                  'Ponto Completo'
+            }
+          </Button>
+          
+          {pontoHoje?.entrada && pontoHoje?.saida && (
+            <p className="text-center text-sm text-gray-600">
+              ✅ Você já registrou entrada e saída hoje
+            </p>
+          )}
+        </div>
+
+        {/* Informações importantes */}
+        <div className="text-xs text-gray-500 space-y-1 border-t pt-3">
+          <p>• Horário registrado automaticamente pelo sistema</p>
+          <p>• Intervalo de almoço: 12:00 às 13:00 (descontado automaticamente)</p>
+          <p>• Registre entrada ao chegar e saída ao final do expediente</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
