@@ -222,9 +222,7 @@ export function AdminPanel() {
         )}
 
         {activeTab === 'escalas' && (
-          <EscalasRecuperacao 
-            onUpdate={handleEscalasUpdate}
-          />
+          <EscalasRecuperacao />
         )}
       </div>
     </div>
