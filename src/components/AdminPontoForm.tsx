@@ -48,6 +48,20 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
     carregarPontos();
   }, []);
 
+  const calcularHoras = (entrada: string, saida: string, data: string) => {
+    if (!entrada || !saida) return 0;
+    
+    // Criar timestamps considerando o timezone local
+    const entradaDate = new Date(`${data}T${entrada}`);
+    const saidaDate = new Date(`${data}T${saida}`);
+    
+    // Calcular diferença em horas, subtraindo 1 hora de almoço
+    const diferencaHoras = (saidaDate.getTime() - entradaDate.getTime()) / (1000 * 60 * 60);
+    const horasLiquidas = Math.max(0, diferencaHoras - 1); // Subtrair 1 hora de almoço
+    
+    return Number(horasLiquidas.toFixed(1));
+  };
+
   const carregarPontos = async () => {
     try {
       const { data, error } = await supabase
@@ -65,20 +79,6 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
     } catch (error) {
       console.error('Erro ao carregar pontos:', error);
     }
-  };
-
-  const calcularHoras = (entrada: string, saida: string, data: string) => {
-    if (!entrada || !saida) return 0;
-    
-    // Criar timestamps considerando o timezone local
-    const entradaDate = new Date(`${data}T${entrada}`);
-    const saidaDate = new Date(`${data}T${saida}`);
-    
-    // Calcular diferença em horas, subtraindo 1 hora de almoço
-    const diferencaHoras = (saidaDate.getTime() - entradaDate.getTime()) / (1000 * 60 * 60);
-    const horasLiquidas = Math.max(0, diferencaHoras - 1); // Subtrair 1 hora de almoço
-    
-    return Number(horasLiquidas.toFixed(1));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -260,6 +260,11 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
     }
   };
 
+  // Calcular total de horas dos pontos carregados
+  const totalHorasLancadas = pontos.reduce((total, ponto) => {
+    return total + (ponto.horas_liquidas || 0);
+  }, 0);
+
   return (
     <div className="space-y-6">
       {/* Formulário de Lançamento */}
@@ -270,7 +275,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
             <span>Lançamento Manual de Ponto</span>
           </CardTitle>
           <CardDescription>
-            Registre entrada e saída manualmente para colaboradores
+            Registre entrada e saída manualmente para colaboradores (desconto automático de 1h de almoço)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -344,11 +349,17 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
       {/* Lista de Pontos Lançados */}
       <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-gray-800">
-            Pontos Lançados Recentemente
+          <CardTitle className="flex items-center justify-between text-gray-800">
+            <span>Pontos Lançados Recentemente</span>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Total de Horas</p>
+              <p className="text-2xl font-bold text-publievo-orange-600">
+                {totalHorasLancadas.toFixed(1)}h
+              </p>
+            </div>
           </CardTitle>
           <CardDescription>
-            Últimos 50 registros de ponto com opções de editar e excluir
+            Últimos 50 registros de ponto com opções de editar e excluir (desconto automático de 1h de almoço)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -440,7 +451,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
           <DialogHeader>
             <DialogTitle>Editar Registro de Ponto</DialogTitle>
             <DialogDescription>
-              Edite os horários de entrada e saída do colaborador
+              Edite os horários de entrada e saída do colaborador (desconto automático de 1h de almoço)
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

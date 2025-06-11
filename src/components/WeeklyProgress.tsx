@@ -25,6 +25,21 @@ export function WeeklyProgress() {
     { dia: 'Domingo', index: 0 },
   ];
 
+  const calcularHorasEstagio = (entrada: string, saida: string) => {
+    if (!entrada || !saida) return 0;
+    
+    const entradaDate = new Date(entrada);
+    const saidaDate = new Date(saida);
+    
+    // Calcular diferença em horas
+    const diferencaHoras = (saidaDate.getTime() - entradaDate.getTime()) / (1000 * 60 * 60);
+    
+    // Subtrair 1 hora de almoço (12:00 às 13:00)
+    const horasLiquidas = Math.max(0, diferencaHoras - 1);
+    
+    return Number(horasLiquidas.toFixed(1));
+  };
+
   const carregarDadosSemanais = async () => {
     if (!user?.id) return;
 
@@ -62,9 +77,20 @@ export function WeeklyProgress() {
       
       // Calcular total de horas de estágio da semana
       const totalHoras = pontos?.reduce((total, ponto) => {
-        const horas = ponto.horas_liquidas || 0;
-        console.log(`Ponto ${ponto.data}: ${horas}h (horas_liquidas no banco)`);
-        return total + horas;
+        // Se temos horas_liquidas calculadas no banco, usar elas
+        if (ponto.horas_liquidas && ponto.horas_liquidas > 0) {
+          console.log(`Ponto ${ponto.data}: ${ponto.horas_liquidas}h (do banco)`);
+          return total + ponto.horas_liquidas;
+        }
+        
+        // Senão, calcular baseado em entrada e saída
+        if (ponto.entrada && ponto.saida) {
+          const horasCalculadas = calcularHorasEstagio(ponto.entrada, ponto.saida);
+          console.log(`Ponto ${ponto.data}: ${horasCalculadas}h (calculado)`);
+          return total + horasCalculadas;
+        }
+        
+        return total;
       }, 0) || 0;
       
       console.log('Total de horas da semana:', totalHoras);
@@ -88,11 +114,19 @@ export function WeeklyProgress() {
     });
 
     if (pontoDoDia) {
+      // Calcular horas para o dia
+      let horas = 0;
+      if (pontoDoDia.horas_liquidas && pontoDoDia.horas_liquidas > 0) {
+        horas = pontoDoDia.horas_liquidas;
+      } else if (pontoDoDia.entrada && pontoDoDia.saida) {
+        horas = calcularHorasEstagio(pontoDoDia.entrada, pontoDoDia.saida);
+      }
+
       return {
         status: pontoDoDia.entrada && pontoDoDia.saida ? 'concluido' : 'pendente',
         entrada: pontoDoDia.entrada ? new Date(pontoDoDia.entrada).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null,
         saida: pontoDoDia.saida ? new Date(pontoDoDia.saida).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : null,
-        horas: pontoDoDia.horas_liquidas || 0
+        horas: horas
       };
     }
 
@@ -239,7 +273,12 @@ export function WeeklyProgress() {
 
                   {/* Grid com informações detalhadas */}
                   {diaInfo.status !== 'folga' && (
-                    <div className="grid grid-cols-3 gap-4 pt-3 border-t border-gray-100">
+                    <div className="grid grid-cols-4 gap-4 pt-3 border-t border-gray-100">
+                      <div className="text-center">
+                        <p className="text-xs text-gray-500 uppercase font-medium mb-1">Dia</p>
+                        <p className="text-sm font-semibold text-gray-800">{dia.dia}</p>
+                      </div>
+
                       <div className="flex items-center space-x-2">
                         <div className="p-2 rounded-lg bg-green-100">
                           <LogIn className="w-4 h-4 text-green-600" />
@@ -295,7 +334,7 @@ export function WeeklyProgress() {
         <CardContent className="space-y-3">
           <div className="space-y-2 text-sm text-gray-700">
             <p>• Jornada semanal de 30 horas de estágio</p>
-            <p>• Horário de almoço: 12:00 às 13:00 (fixo)</p>
+            <p>• Horário de almoço: 12:00 às 13:00 (descontado automaticamente)</p>
             <p>• Marcação automática pela hora do sistema</p>
             <p>• Todos os horários de estágio foram definidos previamente pelo estudante</p>
             <p>• Consulte seu resumo semanal regularmente</p>

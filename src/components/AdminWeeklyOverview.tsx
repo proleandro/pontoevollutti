@@ -20,6 +20,21 @@ export function AdminWeeklyOverview() {
   const [loading, setLoading] = useState(true);
   const metaSemanal = 30;
 
+  const calcularHorasEstagio = (entrada: string, saida: string) => {
+    if (!entrada || !saida) return 0;
+    
+    const entradaDate = new Date(entrada);
+    const saidaDate = new Date(saida);
+    
+    // Calcular diferença em horas
+    const diferencaHoras = (saidaDate.getTime() - entradaDate.getTime()) / (1000 * 60 * 60);
+    
+    // Subtrair 1 hora de almoço (12:00 às 13:00)
+    const horasLiquidas = Math.max(0, diferencaHoras - 1);
+    
+    return Number(horasLiquidas.toFixed(1));
+  };
+
   const carregarProgressoEstagiarios = async () => {
     try {
       setLoading(true);
@@ -54,7 +69,7 @@ export function AdminWeeklyOverview() {
       // Buscar pontos da semana para todos os colaboradores
       const { data: pontos, error: pontosError } = await supabase
         .from('ponto_registros')
-        .select('colaborador_id, horas_liquidas, data')
+        .select('colaborador_id, horas_liquidas, data, entrada, saida')
         .gte('data', domingo.toISOString().split('T')[0])
         .lte('data', sabado.toISOString().split('T')[0]);
 
@@ -70,10 +85,22 @@ export function AdminWeeklyOverview() {
       const progressoEstagiarios = colaboradores?.map(colaborador => {
         const pontosColaborador = pontos?.filter(p => p.colaborador_id === colaborador.id) || [];
         const horasEstagio = pontosColaborador.reduce((total, ponto) => {
-          const horas = ponto.horas_liquidas || 0;
-          console.log(`${colaborador.nome} - ${ponto.data}: ${horas}h`);
-          return total + horas;
+          // Se temos horas_liquidas calculadas no banco, usar elas
+          if (ponto.horas_liquidas && ponto.horas_liquidas > 0) {
+            console.log(`${colaborador.nome} - ${ponto.data}: ${ponto.horas_liquidas}h (do banco)`);
+            return total + ponto.horas_liquidas;
+          }
+          
+          // Senão, calcular baseado em entrada e saída
+          if (ponto.entrada && ponto.saida) {
+            const horasCalculadas = calcularHorasEstagio(ponto.entrada, ponto.saida);
+            console.log(`${colaborador.nome} - ${ponto.data}: ${horasCalculadas}h (calculado)`);
+            return total + horasCalculadas;
+          }
+          
+          return total;
         }, 0);
+        
         const progresso = (horasEstagio / metaSemanal) * 100;
         const horasRestantes = Math.max(0, metaSemanal - horasEstagio);
 
@@ -131,7 +158,10 @@ export function AdminWeeklyOverview() {
 
   return (
     <div className="space-y-6">
-      <WeeklyProgressUpdater onUpdate={carregarProgressoEstagiarios} />
+      <WeeklyProgressUpdater 
+        onUpdate={carregarProgressoEstagiarios} 
+        listenToAllChanges={true}
+      />
       
       {/* Header */}
       <Card className="border-0 shadow-xl bg-gradient-to-r from-publievo-orange-50 to-publievo-purple-50">
@@ -141,7 +171,7 @@ export function AdminWeeklyOverview() {
             <span>Progresso Semanal dos Estagiários</span>
           </CardTitle>
           <CardDescription>
-            Acompanhe o progresso de todos os estagiários em relação à meta semanal de 30 horas
+            Acompanhe o progresso de todos os estagiários em relação à meta semanal de 30 horas (com desconto de 1h de almoço por dia)
           </CardDescription>
         </CardHeader>
       </Card>
