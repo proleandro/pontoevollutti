@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { AdminWeeklyOverview } from './AdminWeeklyOverview';
 import { AdminPontoForm } from './AdminPontoForm';
@@ -10,11 +9,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { User } from '@/types';
 import { EscalasRecuperacao } from './EscalasRecuperacao';
 import { supabase } from '@/integrations/supabase/client';
+import { WeeklyProgressUpdater } from './WeeklyProgressUpdater';
 
 export function AdminPanel() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [colaboradores, setColaboradores] = useState([]);
+  const [updateTrigger, setUpdateTrigger] = useState(0);
 
   useEffect(() => {
     fetchColaboradores();
@@ -39,12 +40,22 @@ export function AdminPanel() {
     setActiveTab('overview');
     // Atualizar lista de colaboradores
     fetchColaboradores();
+    // Forçar atualização global
+    setUpdateTrigger(prev => prev + 1);
   };
 
   const handlePontoSuccess = () => {
     // Callback para quando o ponto for lançado com sucesso
     console.log('Ponto lançado com sucesso');
-    // Força atualização dos dados - o WeeklyProgressUpdater vai detectar automaticamente
+    // Forçar atualização global
+    setUpdateTrigger(prev => prev + 1);
+  };
+
+  const handleEscalasUpdate = () => {
+    // Callback para quando escalas forem atualizadas
+    console.log('Escalas atualizadas');
+    // Forçar atualização global
+    setUpdateTrigger(prev => prev + 1);
   };
 
   const handleCancelNovoColaborador = () => {
@@ -54,6 +65,12 @@ export function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-publievo-orange-100 via-white to-publievo-purple-100">
+      {/* Listener global para atualizações automáticas */}
+      <WeeklyProgressUpdater 
+        onUpdate={() => setUpdateTrigger(prev => prev + 1)}
+        listenToAllChanges={true}
+      />
+
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm sticky top-0 z-40 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -145,7 +162,7 @@ export function AdminPanel() {
           </div>
         )}
 
-        {activeTab === 'overview' && <AdminWeeklyOverview />}
+        {activeTab === 'overview' && <AdminWeeklyOverview key={updateTrigger} />}
 
         {activeTab === 'ponto' && (
           <AdminPontoForm 
@@ -161,7 +178,11 @@ export function AdminPanel() {
           />
         )}
 
-        {activeTab === 'escalas' && <EscalasRecuperacao />}
+        {activeTab === 'escalas' && (
+          <EscalasRecuperacao 
+            onUpdate={handleEscalasUpdate}
+          />
+        )}
       </div>
     </div>
   );

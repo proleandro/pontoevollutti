@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -99,7 +98,12 @@ export function WeeklyProgress() {
 
   return (
     <div className="space-y-8">
-      <WeeklyProgressUpdater onUpdate={carregarDadosSemanais} userId={user?.id} />
+      {/* Atualizar para escutar mudanças globais se for admin/gestor, senão só do usuário */}
+      <WeeklyProgressUpdater 
+        onUpdate={carregarDadosSemanais} 
+        userId={user?.id}
+        listenToAllChanges={user?.tipo === 'admin' || user?.tipo === 'gestor'}
+      />
       
       {/* Resumo Geral */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -5,9 +5,10 @@ import { supabase } from '@/integrations/supabase/client';
 interface WeeklyProgressUpdaterProps {
   onUpdate: () => void;
   userId?: string;
+  listenToAllChanges?: boolean; // Nova prop para escutar mudanças globais
 }
 
-export function WeeklyProgressUpdater({ onUpdate, userId }: WeeklyProgressUpdaterProps) {
+export function WeeklyProgressUpdater({ onUpdate, userId, listenToAllChanges = false }: WeeklyProgressUpdaterProps) {
   useEffect(() => {
     // Configurar listener para mudanças na tabela ponto_registros
     const pontoChannel = supabase
@@ -18,7 +19,8 @@ export function WeeklyProgressUpdater({ onUpdate, userId }: WeeklyProgressUpdate
           event: '*', // Escuta INSERT, UPDATE e DELETE
           schema: 'public',
           table: 'ponto_registros',
-          ...(userId && { filter: `colaborador_id=eq.${userId}` })
+          // Se listenToAllChanges for true ou não houver userId, escuta todas as mudanças
+          ...((!listenToAllChanges && userId) && { filter: `colaborador_id=eq.${userId}` })
         },
         (payload) => {
           console.log('Ponto atualizado:', payload);
@@ -36,7 +38,8 @@ export function WeeklyProgressUpdater({ onUpdate, userId }: WeeklyProgressUpdate
           event: '*', // Escuta INSERT, UPDATE e DELETE
           schema: 'public',
           table: 'escalas',
-          ...(userId && { filter: `colaborador_id=eq.${userId}` })
+          // Se listenToAllChanges for true ou não houver userId, escuta todas as mudanças
+          ...((!listenToAllChanges && userId) && { filter: `colaborador_id=eq.${userId}` })
         },
         (payload) => {
           console.log('Escala atualizada:', payload);
@@ -49,7 +52,7 @@ export function WeeklyProgressUpdater({ onUpdate, userId }: WeeklyProgressUpdate
       supabase.removeChannel(pontoChannel);
       supabase.removeChannel(escalasChannel);
     };
-  }, [onUpdate, userId]);
+  }, [onUpdate, userId, listenToAllChanges]);
 
   return null; // Este componente não renderiza nada
 }
