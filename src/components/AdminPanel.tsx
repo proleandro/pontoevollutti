@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { AdminWeeklyOverview } from './AdminWeeklyOverview';
 import { AdminPontoForm } from './AdminPontoForm';
 import { NovoColaboradorForm } from './NovoColaboradorForm';
+import { ColaboradoresLista } from './ColaboradoresLista';
+import { PontoHistorico } from './PontoHistorico';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -62,6 +64,12 @@ export function AdminPanel() {
   const handleCancelNovoColaborador = () => {
     // Voltar para o dashboard quando cancelar
     setActiveTab('dashboard');
+  };
+
+  const handleColaboradorUpdate = () => {
+    // Atualizar lista de colaboradores quando houver mudanças
+    fetchColaboradores();
+    setUpdateTrigger(prev => prev + 1);
   };
 
   return (
@@ -134,6 +142,26 @@ export function AdminPanel() {
             Registrar Ponto
           </button>
           <button
+            onClick={() => setActiveTab('historico')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              activeTab === 'historico'
+                ? 'bg-publievo-orange-500 text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Histórico de Pontos
+          </button>
+          <button
+            onClick={() => setActiveTab('colaboradores')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              activeTab === 'colaboradores'
+                ? 'bg-publievo-orange-500 text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Colaboradores
+          </button>
+          <button
             onClick={() => setActiveTab('novo')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${
               activeTab === 'novo'
@@ -169,6 +197,20 @@ export function AdminPanel() {
           <AdminPontoForm 
             colaboradores={colaboradores} 
             onSuccess={handlePontoSuccess}
+          />
+        )}
+
+        {activeTab === 'historico' && (
+          <PontoHistorico 
+            colaboradores={colaboradores}
+            onUpdate={handlePontoSuccess}
+          />
+        )}
+
+        {activeTab === 'colaboradores' && (
+          <ColaboradoresLista 
+            colaboradores={colaboradores}
+            onUpdate={handleColaboradorUpdate}
           />
         )}
 
