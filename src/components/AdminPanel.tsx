@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { AdminWeeklyOverview } from './AdminWeeklyOverview';
 import { AdminPontoForm } from './AdminPontoForm';
 import { NovoColaboradorForm } from './NovoColaboradorForm';
@@ -8,14 +9,46 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { User } from '@/types';
 import { EscalasRecuperacao } from './EscalasRecuperacao';
+import { supabase } from '@/integrations/supabase/client';
 
 export function AdminPanel() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [colaboradores, setColaboradores] = useState([]);
+
+  useEffect(() => {
+    fetchColaboradores();
+  }, []);
+
+  const fetchColaboradores = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('nome');
+      
+      if (error) throw error;
+      setColaboradores(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar colaboradores:', error);
+    }
+  };
 
   const handleNovoColaboradorSuccess = () => {
     // Mudando para a aba de overview após criar um novo colaborador
     setActiveTab('overview');
+    // Atualizar lista de colaboradores
+    fetchColaboradores();
+  };
+
+  const handlePontoSuccess = () => {
+    // Callback para quando o ponto for lançado com sucesso
+    console.log('Ponto lançado com sucesso');
+  };
+
+  const handleCancelNovoColaborador = () => {
+    // Voltar para o dashboard quando cancelar
+    setActiveTab('dashboard');
   };
 
   return (
@@ -113,9 +146,19 @@ export function AdminPanel() {
 
         {activeTab === 'overview' && <AdminWeeklyOverview />}
 
-        {activeTab === 'ponto' && <AdminPontoForm />}
+        {activeTab === 'ponto' && (
+          <AdminPontoForm 
+            colaboradores={colaboradores} 
+            onSuccess={handlePontoSuccess}
+          />
+        )}
 
-        {activeTab === 'novo' && <NovoColaboradorForm onSuccess={handleNovoColaboradorSuccess} />}
+        {activeTab === 'novo' && (
+          <NovoColaboradorForm 
+            onSuccess={handleNovoColaboradorSuccess}
+            onCancel={handleCancelNovoColaborador}
+          />
+        )}
 
         {activeTab === 'escalas' && <EscalasRecuperacao />}
       </div>
