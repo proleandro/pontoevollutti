@@ -22,6 +22,7 @@ export type Database = {
           semana: string
           sexta: string | null
           terca: string | null
+          updated_at: string
         }
         Insert: {
           colaborador_id: string
@@ -35,6 +36,7 @@ export type Database = {
           semana: string
           sexta?: string | null
           terca?: string | null
+          updated_at?: string
         }
         Update: {
           colaborador_id?: string
@@ -48,6 +50,7 @@ export type Database = {
           semana?: string
           sexta?: string | null
           terca?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -106,6 +109,51 @@ export type Database = {
           },
         ]
       }
+      subscribers: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          must_change_password: boolean | null
+          password_expires_at: string | null
+          payment_status: string | null
+          stripe_customer_id: string | null
+          stripe_session_id: string | null
+          subscription_type: string
+          temporary_password: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          must_change_password?: boolean | null
+          password_expires_at?: string | null
+          payment_status?: string | null
+          stripe_customer_id?: string | null
+          stripe_session_id?: string | null
+          subscription_type: string
+          temporary_password?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          must_change_password?: boolean | null
+          password_expires_at?: string | null
+          payment_status?: string | null
+          stripe_customer_id?: string | null
+          stripe_session_id?: string | null
+          subscription_type?: string
+          temporary_password?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           cargo: string
@@ -116,6 +164,7 @@ export type Database = {
           nome: string
           senha: string
           tipo: string
+          updated_at: string
         }
         Insert: {
           cargo: string
@@ -126,6 +175,7 @@ export type Database = {
           nome: string
           senha: string
           tipo: string
+          updated_at?: string
         }
         Update: {
           cargo?: string
@@ -136,6 +186,7 @@ export type Database = {
           nome?: string
           senha?: string
           tipo?: string
+          updated_at?: string
         }
         Relationships: []
       }
