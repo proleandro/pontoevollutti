@@ -23,6 +23,7 @@ export function AdminWeeklyOverview() {
   const carregarProgressoEstagiarios = async () => {
     try {
       setLoading(true);
+      console.log('Carregando progresso de todos os estagiários...');
 
       // Calcular início e fim da semana atual (domingo a sábado)
       const hoje = new Date();
@@ -33,6 +34,8 @@ export function AdminWeeklyOverview() {
       const sabado = new Date(domingo);
       sabado.setDate(domingo.getDate() + 6);
       sabado.setHours(23, 59, 59, 999);
+
+      console.log('Período da semana:', domingo.toISOString(), 'até', sabado.toISOString());
 
       // Buscar todos os colaboradores (não admins)
       const { data: colaboradores, error: colaboradoresError } = await supabase
@@ -46,10 +49,12 @@ export function AdminWeeklyOverview() {
         return;
       }
 
+      console.log('Colaboradores encontrados:', colaboradores?.length || 0);
+
       // Buscar pontos da semana para todos os colaboradores
       const { data: pontos, error: pontosError } = await supabase
         .from('ponto_registros')
-        .select('colaborador_id, horas_liquidas')
+        .select('colaborador_id, horas_liquidas, data')
         .gte('data', domingo.toISOString().split('T')[0])
         .lte('data', sabado.toISOString().split('T')[0]);
 
@@ -58,12 +63,21 @@ export function AdminWeeklyOverview() {
         return;
       }
 
+      console.log('Pontos encontrados:', pontos?.length || 0);
+      console.log('Dados dos pontos:', pontos);
+
       // Calcular progresso para cada estagiário
       const progressoEstagiarios = colaboradores?.map(colaborador => {
         const pontosColaborador = pontos?.filter(p => p.colaborador_id === colaborador.id) || [];
-        const horasEstagio = pontosColaborador.reduce((total, ponto) => total + (ponto.horas_liquidas || 0), 0);
+        const horasEstagio = pontosColaborador.reduce((total, ponto) => {
+          const horas = ponto.horas_liquidas || 0;
+          console.log(`${colaborador.nome} - ${ponto.data}: ${horas}h`);
+          return total + horas;
+        }, 0);
         const progresso = (horasEstagio / metaSemanal) * 100;
         const horasRestantes = Math.max(0, metaSemanal - horasEstagio);
+
+        console.log(`${colaborador.nome}: ${horasEstagio}h (${progresso.toFixed(1)}%)`);
 
         return {
           id: colaborador.id,

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -10,6 +11,7 @@ export function WeeklyProgress() {
   const { user } = useAuth();
   const [horasEstagio, setHorasEstagio] = useState(0);
   const [pontosSemanais, setPontosSemanais] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const metaSemanal = 30;
   const progresso = (horasEstagio / metaSemanal) * 100;
 
@@ -27,6 +29,8 @@ export function WeeklyProgress() {
     if (!user?.id) return;
 
     try {
+      setLoading(true);
+      
       // Calcular início e fim da semana atual (domingo a sábado)
       const hoje = new Date();
       const domingo = new Date(hoje);
@@ -37,28 +41,38 @@ export function WeeklyProgress() {
       sabado.setDate(domingo.getDate() + 6);
       sabado.setHours(23, 59, 59, 999);
 
+      console.log('Carregando dados semanais para:', user.id);
+      console.log('Período:', domingo.toISOString(), 'até', sabado.toISOString());
+
       const { data: pontos, error } = await supabase
         .from('ponto_registros')
         .select('*')
         .eq('colaborador_id', user.id)
         .gte('data', domingo.toISOString().split('T')[0])
-        .lte('data', sabado.toISOString().split('T')[0]);
+        .lte('data', sabado.toISOString().split('T')[0])
+        .order('data', { ascending: true });
 
       if (error) {
         console.error('Erro ao carregar dados semanais:', error);
         return;
       }
 
+      console.log('Pontos encontrados:', pontos);
       setPontosSemanais(pontos || []);
       
       // Calcular total de horas de estágio da semana
       const totalHoras = pontos?.reduce((total, ponto) => {
-        return total + (ponto.horas_liquidas || 0);
+        const horas = ponto.horas_liquidas || 0;
+        console.log(`Ponto ${ponto.data}: ${horas}h`);
+        return total + horas;
       }, 0) || 0;
       
+      console.log('Total de horas da semana:', totalHoras);
       setHorasEstagio(totalHoras);
     } catch (error) {
       console.error('Erro ao carregar dados semanais:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -95,6 +109,17 @@ export function WeeklyProgress() {
   };
 
   const horasRestantes = Math.max(0, metaSemanal - horasEstagio);
+
+  if (loading) {
+    return (
+      <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+        <CardContent className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-publievo-orange-500 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Carregando progresso semanal...</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -162,7 +187,7 @@ export function WeeklyProgress() {
               <span className="font-semibold text-publievo-purple-700">{progresso.toFixed(1)}%</span>
             </div>
             <Progress 
-              value={progresso} 
+              value={Math.min(progresso, 100)} 
               className="h-3 bg-gray-200"
             />
           </div>

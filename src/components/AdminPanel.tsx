@@ -4,7 +4,6 @@ import { AdminWeeklyOverview } from './AdminWeeklyOverview';
 import { AdminPontoForm } from './AdminPontoForm';
 import { NovoColaboradorForm } from './NovoColaboradorForm';
 import { ColaboradoresLista } from './ColaboradoresLista';
-import { PontoHistorico } from './PontoHistorico';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -16,7 +15,7 @@ import { WeeklyProgressUpdater } from './WeeklyProgressUpdater';
 
 export function AdminPanel() {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('overview');
   const [colaboradores, setColaboradores] = useState([]);
   const [updateTrigger, setUpdateTrigger] = useState(0);
 
@@ -62,8 +61,8 @@ export function AdminPanel() {
   };
 
   const handleCancelNovoColaborador = () => {
-    // Voltar para o dashboard quando cancelar
-    setActiveTab('dashboard');
+    // Voltar para overview quando cancelar
+    setActiveTab('overview');
   };
 
   const handleColaboradorUpdate = () => {
@@ -112,16 +111,6 @@ export function AdminPanel() {
         {/* Navigation Tabs */}
         <div className="flex flex-wrap gap-2 mb-8 p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-lg">
           <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              activeTab === 'dashboard'
-                ? 'bg-publievo-orange-500 text-white shadow-md'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Dashboard
-          </button>
-          <button
             onClick={() => setActiveTab('overview')}
             className={`px-4 py-2 rounded-lg font-medium transition-all ${
               activeTab === 'overview'
@@ -140,16 +129,6 @@ export function AdminPanel() {
             }`}
           >
             Registrar Ponto
-          </button>
-          <button
-            onClick={() => setActiveTab('historico')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-              activeTab === 'historico'
-                ? 'bg-publievo-orange-500 text-white shadow-md'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Histórico de Pontos
           </button>
           <button
             onClick={() => setActiveTab('colaboradores')}
@@ -184,26 +163,12 @@ export function AdminPanel() {
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'dashboard' && (
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Dashboard</h2>
-            <p className="text-gray-600">Bem-vindo ao painel administrativo!</p>
-          </div>
-        )}
-
         {activeTab === 'overview' && <AdminWeeklyOverview key={updateTrigger} />}
 
         {activeTab === 'ponto' && (
           <AdminPontoForm 
             colaboradores={colaboradores} 
             onSuccess={handlePontoSuccess}
-          />
-        )}
-
-        {activeTab === 'historico' && (
-          <PontoHistorico 
-            colaboradores={colaboradores}
-            onUpdate={handlePontoSuccess}
           />
         )}
 
