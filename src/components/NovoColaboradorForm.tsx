@@ -92,7 +92,7 @@ export function NovoColaboradorForm({ onSuccess, onCancel }: NovoColaboradorForm
         .from('users')
         .select('email')
         .eq('email', formData.email)
-        .single();
+        .maybeSingle();
 
       if (existingUser) {
         toast({
@@ -109,7 +109,7 @@ export function NovoColaboradorForm({ onSuccess, onCancel }: NovoColaboradorForm
         .from('users')
         .select('cpf')
         .eq('cpf', formData.cpf)
-        .single();
+        .maybeSingle();
 
       if (existingCPF) {
         toast({

@@ -22,6 +22,11 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // Filtrar colaboradores válidos (com ID não vazio)
+  const colaboradoresValidos = colaboradores.filter(colaborador => 
+    colaborador && colaborador.id && colaborador.id.toString().trim() !== ''
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -124,11 +129,17 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
                   <SelectValue placeholder="Selecione um colaborador" />
                 </SelectTrigger>
                 <SelectContent>
-                  {colaboradores.map((colaborador) => (
-                    <SelectItem key={colaborador.id} value={colaborador.id}>
-                      {colaborador.nome} - {colaborador.cargo}
+                  {colaboradoresValidos.length === 0 ? (
+                    <SelectItem value="no-colaboradores" disabled>
+                      Nenhum colaborador disponível
                     </SelectItem>
-                  ))}
+                  ) : (
+                    colaboradoresValidos.map((colaborador) => (
+                      <SelectItem key={colaborador.id} value={colaborador.id.toString()}>
+                        {colaborador.nome} - {colaborador.cargo}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -166,7 +177,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
 
           <Button 
             type="submit" 
-            disabled={loading}
+            disabled={loading || colaboradoresValidos.length === 0}
             className="w-full bg-gradient-publievo hover:opacity-90 text-white"
           >
             <Plus className="w-4 h-4 mr-2" />

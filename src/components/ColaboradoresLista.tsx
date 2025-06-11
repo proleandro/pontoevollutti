@@ -30,6 +30,11 @@ export function ColaboradoresLista({ colaboradores, onUpdate }: ColaboradoresLis
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
 
+  // Filtrar colaboradores válidos
+  const colaboradoresValidos = colaboradores.filter(colaborador => 
+    colaborador && colaborador.id && colaborador.id.toString().trim() !== ''
+  );
+
   const formatCPF = (value: string) => {
     const numbers = value.replace(/\D/g, '');
     return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
@@ -199,14 +204,14 @@ export function ColaboradoresLista({ colaboradores, onUpdate }: ColaboradoresLis
               </TableRow>
             </TableHeader>
             <TableBody>
-              {colaboradores.length === 0 ? (
+              {colaboradoresValidos.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                     Nenhum colaborador cadastrado
                   </TableCell>
                 </TableRow>
               ) : (
-                colaboradores.map((colaborador) => (
+                colaboradoresValidos.map((colaborador) => (
                   <TableRow key={colaborador.id}>
                     <TableCell className="font-medium">{colaborador.nome}</TableCell>
                     <TableCell>{colaborador.email}</TableCell>
