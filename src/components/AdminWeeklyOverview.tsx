@@ -29,8 +29,25 @@ export function AdminWeeklyOverview() {
     // Calcular diferença em horas
     const diferencaHoras = (saidaDate.getTime() - entradaDate.getTime()) / (1000 * 60 * 60);
     
-    // Subtrair 1 hora de almoço (12:00 às 13:00)
-    const horasLiquidas = Math.max(0, diferencaHoras - 1);
+    // Definir horário de almoço: 11:59 às 12:59
+    const horaEntrada = entradaDate.getHours() + entradaDate.getMinutes() / 60;
+    const horaSaida = saidaDate.getHours() + saidaDate.getMinutes() / 60;
+    const inicioAlmoco = 11 + 59/60; // 11:59
+    const fimAlmoco = 12 + 59/60; // 12:59
+    
+    // Só descontar almoço se trabalhou durante o horário de almoço
+    let horasLiquidas = diferencaHoras;
+    if (horaEntrada <= inicioAlmoco && horaSaida >= fimAlmoco) {
+      // Trabalhou durante todo o horário de almoço, descontar 1 hora
+      horasLiquidas = Math.max(0, diferencaHoras - 1);
+    } else if (horaEntrada < fimAlmoco && horaSaida > inicioAlmoco) {
+      // Trabalhou parcialmente durante o almoço, descontar proporcionalmente
+      const inicioSobreposicao = Math.max(horaEntrada, inicioAlmoco);
+      const fimSobreposicao = Math.min(horaSaida, fimAlmoco);
+      const horasAlmocoTrabalhadas = Math.max(0, fimSobreposicao - inicioSobreposicao);
+      horasLiquidas = Math.max(0, diferencaHoras - horasAlmocoTrabalhadas);
+    }
+    // Se não trabalhou durante o almoço, não desconta nada
     
     return Number(horasLiquidas.toFixed(1));
   };
