@@ -32,7 +32,7 @@ export function Dashboard() {
             {user.tipo === 'colaborador' && (
               <div className="mt-4 mb-4">
                 <p className="text-lg font-medium text-publievo-purple-700 mb-2">
-                  Comece o dia lembrando: seu trabalho transforma empresas e vidas.
+                  Comece o dia lembrando: seu estágio transforma empresas e vidas.
                 </p>
                 <p className="text-xl text-publievo-orange-600 font-semibold mb-4">
                   Bom dia, {user.nome}!
