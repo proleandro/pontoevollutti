@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -139,8 +140,25 @@ export function PontoCard() {
     // Calcular diferença em horas
     const diferencaHoras = (saida.getTime() - entrada.getTime()) / (1000 * 60 * 60);
     
-    // Subtrair 1 hora de almoço automaticamente
-    const horasLiquidas = Math.max(0, diferencaHoras - 1);
+    // Definir horário de almoço: 11:59 às 12:59
+    const horaEntrada = entrada.getHours() + entrada.getMinutes() / 60;
+    const horaSaida = saida.getHours() + saida.getMinutes() / 60;
+    const inicioAlmoco = 11 + 59/60; // 11:59
+    const fimAlmoco = 12 + 59/60; // 12:59
+    
+    // Só descontar almoço se trabalhou durante o horário de almoço
+    let horasLiquidas = diferencaHoras;
+    if (horaEntrada <= inicioAlmoco && horaSaida >= fimAlmoco) {
+      // Trabalhou durante todo o horário de almoço, descontar 1 hora
+      horasLiquidas = Math.max(0, diferencaHoras - 1);
+    } else if (horaEntrada < fimAlmoco && horaSaida > inicioAlmoco) {
+      // Trabalhou parcialmente durante o almoço, descontar proporcionalmente
+      const inicioSobreposicao = Math.max(horaEntrada, inicioAlmoco);
+      const fimSobreposicao = Math.min(horaSaida, fimAlmoco);
+      const horasAlmocoTrabalhadas = Math.max(0, fimSobreposicao - inicioSobreposicao);
+      horasLiquidas = Math.max(0, diferencaHoras - horasAlmocoTrabalhadas);
+    }
+    // Se não trabalhou durante o almoço, não desconta nada
     
     return horasLiquidas;
   };
@@ -177,7 +195,7 @@ export function PontoCard() {
             <div className="text-center p-4 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200">
               <Coffee className="w-6 h-6 text-orange-600 mx-auto mb-2" />
               <p className="text-xs text-orange-700 font-medium mb-1">ALMOÇO</p>
-              <p className="text-sm font-bold text-orange-800">12:00-13:00</p>
+              <p className="text-sm font-bold text-orange-800">11:59-12:59</p>
             </div>
 
             <div className="text-center p-4 rounded-lg bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
@@ -200,7 +218,7 @@ export function PontoCard() {
                 {horasTrabalhadas.toFixed(1)}h
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                (Desconto automático de 1h de almoço)
+                (Desconto automático apenas se trabalhar durante o almoço: 11:59-12:59)
               </p>
             </div>
           )}
@@ -233,7 +251,7 @@ export function PontoCard() {
           {/* Informações importantes */}
           <div className="text-xs text-gray-500 space-y-1 border-t pt-3">
             <p>• Horário registrado automaticamente pelo sistema (São Paulo)</p>
-            <p>• Intervalo de almoço: 12:00 às 13:00 (descontado automaticamente)</p>
+            <p>• Intervalo de almoço: 11:59 às 12:59 (descontado apenas se trabalhar neste período)</p>
             <p>• Registre entrada ao chegar e saída ao final do expediente</p>
           </div>
         </CardContent>
