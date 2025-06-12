@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Users, TrendingUp, Clock, Target } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { WeeklyProgressUpdater } from './WeeklyProgressUpdater';
+import { formatHorasMinutos } from '../lib/utils';
 
 interface EstagarioProgresso {
   id: string;
@@ -210,7 +210,7 @@ export function AdminWeeklyOverview() {
               <div>
                 <p className="text-sm opacity-90">Total Horas</p>
                 <p className="text-2xl font-bold">
-                  {estagiarios.reduce((total, e) => total + e.horasEstagio, 0).toFixed(1)}h
+                  {formatHorasMinutos(estagiarios.reduce((total, e) => total + e.horasEstagio, 0))}
                 </p>
               </div>
               <Clock className="w-6 h-6 opacity-80" />
@@ -267,17 +267,17 @@ export function AdminWeeklyOverview() {
                   <div className="bg-gradient-to-br from-publievo-orange-50 to-publievo-orange-100 p-3 rounded-lg">
                     <p className="text-xs text-gray-600 mb-1">Horas de Estágio</p>
                     <p className="text-lg font-bold text-publievo-orange-600">
-                      {estagiario.horasEstagio.toFixed(1)}h
+                      {formatHorasMinutos(estagiario.horasEstagio)}
                     </p>
                   </div>
                   <div className="bg-gradient-to-br from-publievo-purple-50 to-publievo-purple-100 p-3 rounded-lg">
                     <p className="text-xs text-gray-600 mb-1">Meta</p>
-                    <p className="text-lg font-bold text-publievo-purple-600">{metaSemanal}h</p>
+                    <p className="text-lg font-bold text-publievo-purple-600">30:00</p>
                   </div>
                   <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-lg">
                     <p className="text-xs text-gray-600 mb-1">Restantes</p>
                     <p className="text-lg font-bold text-gray-700">
-                      {estagiario.horasRestantes.toFixed(1)}h
+                      {formatHorasMinutos(estagiario.horasRestantes)}
                     </p>
                   </div>
                 </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -9,6 +8,7 @@ import { WeeklyProgressUpdater } from './WeeklyProgressUpdater';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { startOfWeek, endOfWeek } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatHorasMinutos } from '../lib/utils';
 
 const TIMEZONE = 'America/Sao_Paulo';
 
@@ -174,7 +174,7 @@ export function WeeklyProgress() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm opacity-90">Horas de Estágio</p>
-                <p className="text-3xl font-bold">{horasEstagio.toFixed(1)}h</p>
+                <p className="text-3xl font-bold">{formatHorasMinutos(horasEstagio)}</p>
               </div>
               <Clock className="w-8 h-8 opacity-80" />
             </div>
@@ -186,7 +186,7 @@ export function WeeklyProgress() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm opacity-90">Meta Semanal</p>
-                <p className="text-3xl font-bold">{metaSemanal}h</p>
+                <p className="text-3xl font-bold">30:00</p>
               </div>
               <TrendingUp className="w-8 h-8 opacity-80" />
             </div>
@@ -198,7 +198,7 @@ export function WeeklyProgress() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm opacity-90">Horas Restantes</p>
-                <p className="text-3xl font-bold">{horasRestantes.toFixed(1)}h</p>
+                <p className="text-3xl font-bold">{formatHorasMinutos(horasRestantes)}</p>
               </div>
               <Calendar className="w-8 h-8 opacity-80" />
             </div>
@@ -231,11 +231,11 @@ export function WeeklyProgress() {
           
           <div className="flex justify-between items-center pt-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-publievo-orange-600">{horasEstagio.toFixed(1)}h</p>
+              <p className="text-2xl font-bold text-publievo-orange-600">{formatHorasMinutos(horasEstagio)}</p>
               <p className="text-sm text-gray-600">De Estágio</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-publievo-purple-600">{metaSemanal}h</p>
+              <p className="text-2xl font-bold text-publievo-purple-600">30:00</p>
               <p className="text-sm text-gray-600">Meta</p>
             </div>
           </div>
@@ -317,7 +317,7 @@ export function WeeklyProgress() {
                         <div>
                           <p className="text-xs text-gray-500 uppercase font-medium">Total</p>
                           <p className="text-sm font-semibold text-publievo-orange-600">
-                            {diaInfo.horas > 0 ? `${diaInfo.horas.toFixed(1)}h` : '--'}
+                            {diaInfo.horas > 0 ? formatHorasMinutos(diaInfo.horas) : '--:--'}
                           </p>
                         </div>
                       </div>
@@ -341,7 +341,7 @@ export function WeeklyProgress() {
         <CardContent className="space-y-3">
           <div className="space-y-2 text-sm text-gray-700">
             <p>• Jornada semanal de 30 horas de estágio</p>
-            <p>• Horário de almoço: 12:00 às 13:00 (descontado automaticamente)</p>
+            <p>• Horário de almoço: 11:59 às 12:59 (descontado apenas se trabalhar neste período)</p>
             <p>• Marcação automática no horário de São Paulo</p>
             <p>• Todos os horários de estágio foram definidos previamente pelo estudante</p>
             <p>• Consulte seu resumo semanal regularmente</p>

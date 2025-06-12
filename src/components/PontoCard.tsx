@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 import { ThankYouButton } from './ThankYouButton';
+import { formatHorasMinutos } from '../lib/utils';
 
 const TIMEZONE = 'America/Sao_Paulo';
 
@@ -215,7 +215,7 @@ export function PontoCard() {
             <div className="text-center p-4 bg-gradient-to-r from-publievo-purple-50 to-publievo-orange-50 rounded-lg border">
               <p className="text-sm text-gray-600 mb-1">Total de Horas de Estágio</p>
               <p className="text-3xl font-bold text-publievo-orange-600">
-                {horasTrabalhadas.toFixed(1)}h
+                {formatHorasMinutos(horasTrabalhadas)}
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 (Desconto automático apenas se trabalhar durante o almoço: 11:59-12:59)
