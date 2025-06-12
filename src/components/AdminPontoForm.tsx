@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Clock, Plus, Edit, Trash2 } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
+import { formatHorasMinutos } from '../lib/utils';
 
 const TIMEZONE = 'America/Sao_Paulo';
 
@@ -65,8 +66,24 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
     const diferencaMinutos = saidaMinutos - entradaMinutos;
     const diferencaHoras = diferencaMinutos / 60;
     
-    // Subtrair 1 hora de almoço
-    const horasLiquidas = Math.max(0, diferencaHoras - 1);
+    // Definir horário de almoço: 11:59 às 12:59
+    const horaEntradaDecimal = horaEntrada + minutoEntrada / 60;
+    const horaSaidaDecimal = horaSaida + minutoSaida / 60;
+    const inicioAlmoco = 11 + 59/60; // 11:59
+    const fimAlmoco = 12 + 59/60; // 12:59
+    
+    // Só descontar almoço se trabalhou durante o horário de almoço
+    let horasLiquidas = diferencaHoras;
+    if (horaEntradaDecimal <= inicioAlmoco && horaSaidaDecimal >= fimAlmoco) {
+      // Trabalhou durante todo o horário de almoço, descontar 1 hora
+      horasLiquidas = Math.max(0, diferencaHoras - 1);
+    } else if (horaEntradaDecimal < fimAlmoco && horaSaidaDecimal > inicioAlmoco) {
+      // Trabalhou parcialmente durante o almoço, descontar proporcionalmente
+      const inicioSobreposicao = Math.max(horaEntradaDecimal, inicioAlmoco);
+      const fimSobreposicao = Math.min(horaSaidaDecimal, fimAlmoco);
+      const horasAlmocoTrabalhadas = Math.max(0, fimSobreposicao - inicioSobreposicao);
+      horasLiquidas = Math.max(0, diferencaHoras - horasAlmocoTrabalhadas);
+    }
     
     return Number(horasLiquidas.toFixed(1));
   };
@@ -285,7 +302,23 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
       const entrada = new Date(ponto.entrada);
       const saida = new Date(ponto.saida);
       const diferencaHoras = (saida.getTime() - entrada.getTime()) / (1000 * 60 * 60);
-      const horasLiquidas = Math.max(0, diferencaHoras - 1); // Subtrair 1 hora de almoço
+      
+      // Aplicar a mesma lógica de desconto de almoço
+      const horaEntrada = entrada.getHours() + entrada.getMinutes() / 60;
+      const horaSaida = saida.getHours() + saida.getMinutes() / 60;
+      const inicioAlmoco = 11 + 59/60; // 11:59
+      const fimAlmoco = 12 + 59/60; // 12:59
+      
+      let horasLiquidas = diferencaHoras;
+      if (horaEntrada <= inicioAlmoco && horaSaida >= fimAlmoco) {
+        horasLiquidas = Math.max(0, diferencaHoras - 1);
+      } else if (horaEntrada < fimAlmoco && horaSaida > inicioAlmoco) {
+        const inicioSobreposicao = Math.max(horaEntrada, inicioAlmoco);
+        const fimSobreposicao = Math.min(horaSaida, fimAlmoco);
+        const horasAlmocoTrabalhadas = Math.max(0, fimSobreposicao - inicioSobreposicao);
+        horasLiquidas = Math.max(0, diferencaHoras - horasAlmocoTrabalhadas);
+      }
+      
       return total + horasLiquidas;
     }
     
@@ -302,7 +335,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
             <span>Lançamento Manual de Ponto</span>
           </CardTitle>
           <CardDescription>
-            Registre entrada e saída manualmente para colaboradores (desconto automático de 1h de almoço)
+            Registre entrada e saída manualmente para colaboradores (desconto automático apenas se trabalhar durante o almoço: 11:59-12:59)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -381,12 +414,12 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
             <div className="text-right">
               <p className="text-sm text-gray-600">Total de Horas</p>
               <p className="text-2xl font-bold text-publievo-orange-600">
-                {totalHorasLancadas.toFixed(1)}h
+                {formatHorasMinutos(totalHorasLancadas)}
               </p>
             </div>
           </CardTitle>
           <CardDescription>
-            Últimos 50 registros de ponto com opções de editar e excluir (desconto automático de 1h de almoço)
+            Últimos 50 registros de ponto com opções de editar e excluir (desconto automático apenas se trabalhar durante o almoço: 11:59-12:59)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -411,7 +444,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
                   </TableRow>
                 ) : (
                   pontos.map((ponto) => {
-                    // Calcular horas para exibição
+                    // Calcular horas para exibição usando a mesma lógica
                     let horasParaExibir = 0;
                     if (ponto.horas_liquidas && ponto.horas_liquidas > 0) {
                       horasParaExibir = ponto.horas_liquidas;
@@ -419,7 +452,24 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
                       const entrada = new Date(ponto.entrada);
                       const saida = new Date(ponto.saida);
                       const diferencaHoras = (saida.getTime() - entrada.getTime()) / (1000 * 60 * 60);
-                      horasParaExibir = Math.max(0, diferencaHoras - 1);
+                      
+                      // Aplicar a mesma lógica de desconto de almoço
+                      const horaEntrada = entrada.getHours() + entrada.getMinutes() / 60;
+                      const horaSaida = saida.getHours() + saida.getMinutes() / 60;
+                      const inicioAlmoco = 11 + 59/60; // 11:59
+                      const fimAlmoco = 12 + 59/60; // 12:59
+                      
+                      let horasLiquidas = diferencaHoras;
+                      if (horaEntrada <= inicioAlmoco && horaSaida >= fimAlmoco) {
+                        horasLiquidas = Math.max(0, diferencaHoras - 1);
+                      } else if (horaEntrada < fimAlmoco && horaSaida > inicioAlmoco) {
+                        const inicioSobreposicao = Math.max(horaEntrada, inicioAlmoco);
+                        const fimSobreposicao = Math.min(horaSaida, fimAlmoco);
+                        const horasAlmocoTrabalhadas = Math.max(0, fimSobreposicao - inicioSobreposicao);
+                        horasLiquidas = Math.max(0, diferencaHoras - horasAlmocoTrabalhadas);
+                      }
+                      
+                      horasParaExibir = horasLiquidas;
                     }
 
                     return (
@@ -448,7 +498,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
                         </TableCell>
                         <TableCell>
                           <span className="font-medium text-publievo-orange-600">
-                            {horasParaExibir.toFixed(1)}h
+                            {formatHorasMinutos(horasParaExibir)}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -486,7 +536,7 @@ export function AdminPontoForm({ colaboradores, onSuccess }: AdminPontoFormProps
           <DialogHeader>
             <DialogTitle>Editar Registro de Ponto</DialogTitle>
             <DialogDescription>
-              Edite a data e os horários de entrada e saída do colaborador (desconto automático de 1h de almoço)
+              Edite a data e os horários de entrada e saída do colaborador (desconto automático apenas se trabalhar durante o almoço: 11:59-12:59)
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
