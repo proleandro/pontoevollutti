@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Users, TrendingUp, Clock, Target } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { WeeklyProgressUpdater } from './WeeklyProgressUpdater';
+import { PreviousWeekOverview } from './PreviousWeekOverview';
 import { formatHorasMinutos } from '../lib/utils';
 
 interface EstagarioProgresso {
@@ -252,6 +254,9 @@ export function AdminWeeklyOverview() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Seção Totais da Semana Anterior */}
+      <PreviousWeekOverview />
 
       {/* Cards dos Estagiários */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
