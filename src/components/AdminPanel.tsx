@@ -158,7 +158,7 @@ export function AdminPanel() {
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
-            Recuperar Horários
+            Previsão de Escalas
           </button>
         </div>
 
