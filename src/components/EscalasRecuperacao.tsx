@@ -20,13 +20,20 @@ interface Colaborador {
 interface EscalaSemanal {
   colaborador_id: string;
   semana: string;
-  segunda?: string;
-  terca?: string;
-  quarta?: string;
-  quinta?: string;
-  sexta?: string;
-  sabado?: string;
-  domingo?: string;
+  segunda_entrada?: string;
+  segunda_saida?: string;
+  terca_entrada?: string;
+  terca_saida?: string;
+  quarta_entrada?: string;
+  quarta_saida?: string;
+  quinta_entrada?: string;
+  quinta_saida?: string;
+  sexta_entrada?: string;
+  sexta_saida?: string;
+  sabado_entrada?: string;
+  sabado_saida?: string;
+  domingo_entrada?: string;
+  domingo_saida?: string;
 }
 
 export function EscalasRecuperacao() {
@@ -84,13 +91,20 @@ export function EscalasRecuperacao() {
         return escalaExistente || {
           colaborador_id: colaborador.id,
           semana: semanaString,
-          segunda: '',
-          terca: '',
-          quarta: '',
-          quinta: '',
-          sexta: '',
-          sabado: '',
-          domingo: ''
+          segunda_entrada: '',
+          segunda_saida: '',
+          terca_entrada: '',
+          terca_saida: '',
+          quarta_entrada: '',
+          quarta_saida: '',
+          quinta_entrada: '',
+          quinta_saida: '',
+          sexta_entrada: '',
+          sexta_saida: '',
+          sabado_entrada: '',
+          sabado_saida: '',
+          domingo_entrada: '',
+          domingo_saida: ''
         };
       }) || [];
 
@@ -107,16 +121,32 @@ export function EscalasRecuperacao() {
     }
   };
 
+  const calcularHorasDia = (entrada: string, saida: string): number => {
+    if (!entrada || !saida) return 0;
+    
+    const [horaEntrada, minutoEntrada] = entrada.split(':').map(Number);
+    const [horaSaida, minutoSaida] = saida.split(':').map(Number);
+    
+    const minutosEntrada = horaEntrada * 60 + minutoEntrada;
+    const minutosSaida = horaSaida * 60 + minutoSaida;
+    
+    let totalMinutos = minutosSaida - minutosEntrada;
+    
+    // Descontar 1 hora de almoço se trabalhar mais de 6 horas
+    if (totalMinutos > 360) { // 6 horas = 360 minutos
+      totalMinutos -= 60; // Desconta 1 hora de almoço
+    }
+    
+    return Math.max(0, totalMinutos);
+  };
+
   const calcularTotalHoras = (escala: EscalaSemanal): string => {
-    const diasParaCalcular = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
     let totalMinutos = 0;
 
-    diasParaCalcular.forEach(dia => {
-      const horario = escala[dia as keyof EscalaSemanal] as string;
-      if (horario && horario.includes(':')) {
-        // Assumindo jornada de 8 horas para cada dia com horário definido (descontando 1h de almoço = 7h efetivas)
-        totalMinutos += 7 * 60; // 7 horas = 420 minutos
-      }
+    diasSemana.forEach(dia => {
+      const entrada = escala[`${dia.key}_entrada` as keyof EscalaSemanal] as string;
+      const saida = escala[`${dia.key}_saida` as keyof EscalaSemanal] as string;
+      totalMinutos += calcularHorasDia(entrada || '', saida || '');
     });
 
     const horas = Math.floor(totalMinutos / 60);
@@ -124,10 +154,10 @@ export function EscalasRecuperacao() {
     return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
   };
 
-  const atualizarHorario = (colaboradorId: string, dia: string, horario: string) => {
+  const atualizarHorario = (colaboradorId: string, campo: string, horario: string) => {
     setEscalas(escalas.map(escala => 
       escala.colaborador_id === colaboradorId 
-        ? { ...escala, [dia]: horario }
+        ? { ...escala, [campo]: horario }
         : escala
     ));
   };
@@ -142,13 +172,20 @@ export function EscalasRecuperacao() {
           .upsert({
             colaborador_id: escala.colaborador_id,
             semana: escala.semana,
-            segunda: escala.segunda || null,
-            terca: escala.terca || null,
-            quarta: escala.quarta || null,
-            quinta: escala.quinta || null,
-            sexta: escala.sexta || null,
-            sabado: escala.sabado || null,
-            domingo: escala.domingo || null
+            segunda_entrada: escala.segunda_entrada || null,
+            segunda_saida: escala.segunda_saida || null,
+            terca_entrada: escala.terca_entrada || null,
+            terca_saida: escala.terca_saida || null,
+            quarta_entrada: escala.quarta_entrada || null,
+            quarta_saida: escala.quarta_saida || null,
+            quinta_entrada: escala.quinta_entrada || null,
+            quinta_saida: escala.quinta_saida || null,
+            sexta_entrada: escala.sexta_entrada || null,
+            sexta_saida: escala.sexta_saida || null,
+            sabado_entrada: escala.sabado_entrada || null,
+            sabado_saida: escala.sabado_saida || null,
+            domingo_entrada: escala.domingo_entrada || null,
+            domingo_saida: escala.domingo_saida || null
           }, {
             onConflict: 'colaborador_id,semana'
           });
@@ -233,7 +270,7 @@ export function EscalasRecuperacao() {
           <span>Previsão de Escalas Semanais</span>
         </CardTitle>
         <CardDescription>
-          Defina os horários previstos para cada colaborador durante a semana
+          Defina os horários de entrada e saída previstos para cada colaborador durante a semana
         </CardDescription>
       </CardHeader>
       
@@ -263,12 +300,14 @@ export function EscalasRecuperacao() {
               <TableRow>
                 <TableHead className="w-48">Colaborador</TableHead>
                 {diasSemana.map(dia => (
-                  <TableHead key={dia.key} className="text-center min-w-32">
+                  <TableHead key={dia.key} className="text-center min-w-40">
                     {dia.label}
                     <br />
                     <span className="text-xs text-gray-500">
                       {format(addDays(inicioSemana, diasSemana.indexOf(dia)), 'dd/MM', { locale: ptBR })}
                     </span>
+                    <br />
+                    <span className="text-xs text-gray-400">Entrada / Saída</span>
                   </TableHead>
                 ))}
                 <TableHead className="text-center min-w-24">
@@ -290,13 +329,22 @@ export function EscalasRecuperacao() {
                     </TableCell>
                     {diasSemana.map(dia => (
                       <TableCell key={dia.key} className="text-center">
-                        <Input
-                          type="time"
-                          value={escalaColaborador?.[dia.key as keyof EscalaSemanal] as string || ''}
-                          onChange={(e) => atualizarHorario(colaborador.id, dia.key, e.target.value)}
-                          className="w-full text-center"
-                          placeholder="--:--"
-                        />
+                        <div className="space-y-1">
+                          <Input
+                            type="time"
+                            value={escalaColaborador?.[`${dia.key}_entrada` as keyof EscalaSemanal] as string || ''}
+                            onChange={(e) => atualizarHorario(colaborador.id, `${dia.key}_entrada`, e.target.value)}
+                            className="w-full text-center text-xs"
+                            placeholder="Entrada"
+                          />
+                          <Input
+                            type="time"
+                            value={escalaColaborador?.[`${dia.key}_saida` as keyof EscalaSemanal] as string || ''}
+                            onChange={(e) => atualizarHorario(colaborador.id, `${dia.key}_saida`, e.target.value)}
+                            className="w-full text-center text-xs"
+                            placeholder="Saída"
+                          />
+                        </div>
                       </TableCell>
                     ))}
                     <TableCell className="text-center font-semibold text-publievo-purple-600">
@@ -377,10 +425,11 @@ export function EscalasRecuperacao() {
             Instruções
           </h4>
           <ul className="text-sm text-blue-700 space-y-1">
-            <li>• Defina os horários de entrada para cada colaborador em cada dia da semana</li>
-            <li>• Use o formato 24h (ex: 08:00, 14:30)</li>
+            <li>• Defina os horários de entrada e saída para cada colaborador em cada dia da semana</li>
+            <li>• Use o formato 24h (ex: 08:00, 17:00)</li>
             <li>• Deixe em branco os dias em que o colaborador não trabalha</li>
-            <li>• O total previsto é calculado automaticamente (7h por dia com horário definido)</li>
+            <li>• O sistema desconta automaticamente 1h de almoço para jornadas acima de 6h</li>
+            <li>• O total previsto é calculado automaticamente</li>
             <li>• Use as setas para navegar entre diferentes semanas</li>
             <li>• Clique em "Salvar Escalas" para confirmar as mudanças</li>
             <li>• Use "Excluir Semana Anterior" para remover dados antigos</li>
