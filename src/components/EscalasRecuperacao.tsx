@@ -4,11 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calendar, Clock, Save, Plus } from 'lucide-react';
+import { Calendar, Clock, Save, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface Colaborador {
   id: string;
@@ -34,6 +35,7 @@ export function EscalasRecuperacao() {
   const [semanaAtual, setSemanaAtual] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
   const diasSemana = [
@@ -105,6 +107,23 @@ export function EscalasRecuperacao() {
     }
   };
 
+  const calcularTotalHoras = (escala: EscalaSemanal): string => {
+    const diasParaCalcular = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
+    let totalMinutos = 0;
+
+    diasParaCalcular.forEach(dia => {
+      const horario = escala[dia as keyof EscalaSemanal] as string;
+      if (horario && horario.includes(':')) {
+        // Assumindo jornada de 8 horas para cada dia com horário definido (descontando 1h de almoço = 7h efetivas)
+        totalMinutos += 7 * 60; // 7 horas = 420 minutos
+      }
+    });
+
+    const horas = Math.floor(totalMinutos / 60);
+    const minutos = totalMinutos % 60;
+    return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
+  };
+
   const atualizarHorario = (colaboradorId: string, dia: string, horario: string) => {
     setEscalas(escalas.map(escala => 
       escala.colaborador_id === colaboradorId 
@@ -150,6 +169,37 @@ export function EscalasRecuperacao() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const excluirSemanaAnterior = async () => {
+    try {
+      setDeleting(true);
+      
+      const semanaAnterior = addDays(semanaAtual, -7);
+      const inicioSemanaAnterior = startOfWeek(semanaAnterior, { weekStartsOn: 0 });
+      const semanaAnteriorString = format(inicioSemanaAnterior, 'yyyy-MM-dd');
+
+      const { error } = await supabase
+        .from('escalas')
+        .delete()
+        .eq('semana', semanaAnteriorString);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Dados da semana anterior excluídos com sucesso!",
+      });
+    } catch (error) {
+      console.error('Erro ao excluir semana anterior:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir dados da semana anterior",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -221,6 +271,9 @@ export function EscalasRecuperacao() {
                     </span>
                   </TableHead>
                 ))}
+                <TableHead className="text-center min-w-24">
+                  Total Previsto
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -246,6 +299,9 @@ export function EscalasRecuperacao() {
                         />
                       </TableCell>
                     ))}
+                    <TableCell className="text-center font-semibold text-publievo-purple-600">
+                      {escalaColaborador ? calcularTotalHoras(escalaColaborador) : '00:00'}
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -253,8 +309,48 @@ export function EscalasRecuperacao() {
           </Table>
         </div>
 
-        {/* Botão de salvar */}
-        <div className="flex justify-end mt-6">
+        {/* Botões de ação */}
+        <div className="flex justify-between items-center mt-6">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                disabled={deleting}
+                className="flex items-center space-x-2"
+              >
+                {deleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Excluindo...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Excluir Semana Anterior</span>
+                  </>
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center space-x-2">
+                  <AlertTriangle className="w-5 h-5 text-red-500" />
+                  <span>Confirmar Exclusão</span>
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja excluir todos os dados de escala da semana anterior? 
+                  Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={excluirSemanaAnterior} className="bg-red-500 hover:bg-red-600">
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           <Button 
             onClick={salvarEscalas} 
             disabled={saving}
@@ -284,8 +380,10 @@ export function EscalasRecuperacao() {
             <li>• Defina os horários de entrada para cada colaborador em cada dia da semana</li>
             <li>• Use o formato 24h (ex: 08:00, 14:30)</li>
             <li>• Deixe em branco os dias em que o colaborador não trabalha</li>
+            <li>• O total previsto é calculado automaticamente (7h por dia com horário definido)</li>
             <li>• Use as setas para navegar entre diferentes semanas</li>
             <li>• Clique em "Salvar Escalas" para confirmar as mudanças</li>
+            <li>• Use "Excluir Semana Anterior" para remover dados antigos</li>
           </ul>
         </div>
       </CardContent>
