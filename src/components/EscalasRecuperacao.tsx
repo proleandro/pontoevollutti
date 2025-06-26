@@ -30,10 +30,6 @@ interface EscalaSemanal {
   quinta_saida?: string;
   sexta_entrada?: string;
   sexta_saida?: string;
-  sabado_entrada?: string;
-  sabado_saida?: string;
-  domingo_entrada?: string;
-  domingo_saida?: string;
 }
 
 export function EscalasRecuperacao() {
@@ -50,9 +46,7 @@ export function EscalasRecuperacao() {
     { key: 'terca', label: 'Terça' },
     { key: 'quarta', label: 'Quarta' },
     { key: 'quinta', label: 'Quinta' },
-    { key: 'sexta', label: 'Sexta' },
-    { key: 'sabado', label: 'Sábado' },
-    { key: 'domingo', label: 'Domingo' }
+    { key: 'sexta', label: 'Sexta' }
   ];
 
   useEffect(() => {
@@ -100,11 +94,7 @@ export function EscalasRecuperacao() {
           quinta_entrada: '',
           quinta_saida: '',
           sexta_entrada: '',
-          sexta_saida: '',
-          sabado_entrada: '',
-          sabado_saida: '',
-          domingo_entrada: '',
-          domingo_saida: ''
+          sexta_saida: ''
         };
       }) || [];
 
@@ -182,10 +172,10 @@ export function EscalasRecuperacao() {
             quinta_saida: escala.quinta_saida || null,
             sexta_entrada: escala.sexta_entrada || null,
             sexta_saida: escala.sexta_saida || null,
-            sabado_entrada: escala.sabado_entrada || null,
-            sabado_saida: escala.sabado_saida || null,
-            domingo_entrada: escala.domingo_entrada || null,
-            domingo_saida: escala.domingo_saida || null
+            sabado_entrada: null,
+            sabado_saida: null,
+            domingo_entrada: null,
+            domingo_saida: null
           }, {
             onConflict: 'colaborador_id,semana'
           });
@@ -249,7 +239,7 @@ export function EscalasRecuperacao() {
   };
 
   const inicioSemana = startOfWeek(semanaAtual, { weekStartsOn: 0 });
-  const fimSemana = addDays(inicioSemana, 6);
+  const fimSemana = addDays(inicioSemana, 4); // Sexta-feira
 
   if (loading) {
     return (
@@ -270,7 +260,7 @@ export function EscalasRecuperacao() {
           <span>Previsão de Escalas Semanais</span>
         </CardTitle>
         <CardDescription>
-          Defina os horários de entrada e saída previstos para cada colaborador durante a semana
+          Defina os horários de entrada e saída previstos para cada colaborador durante a semana (segunda a sexta)
         </CardDescription>
       </CardHeader>
       
@@ -299,12 +289,12 @@ export function EscalasRecuperacao() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-48">Colaborador</TableHead>
-                {diasSemana.map(dia => (
+                {diasSemana.map((dia, index) => (
                   <TableHead key={dia.key} className="text-center min-w-40">
                     {dia.label}
                     <br />
                     <span className="text-xs text-gray-500">
-                      {format(addDays(inicioSemana, diasSemana.indexOf(dia)), 'dd/MM', { locale: ptBR })}
+                      {format(addDays(inicioSemana, index + 1), 'dd/MM', { locale: ptBR })}
                     </span>
                     <br />
                     <span className="text-xs text-gray-400">Entrada / Saída</span>
@@ -425,7 +415,7 @@ export function EscalasRecuperacao() {
             Instruções
           </h4>
           <ul className="text-sm text-blue-700 space-y-1">
-            <li>• Defina os horários de entrada e saída para cada colaborador em cada dia da semana</li>
+            <li>• Defina os horários de entrada e saída para cada colaborador em cada dia útil da semana</li>
             <li>• Use o formato 24h (ex: 08:00, 17:00)</li>
             <li>• Deixe em branco os dias em que o colaborador não trabalha</li>
             <li>• O sistema desconta automaticamente 1h de almoço para jornadas acima de 6h</li>
