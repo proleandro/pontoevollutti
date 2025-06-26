@@ -4,6 +4,7 @@ import { PontoCard } from './PontoCard';
 import { WeeklyProgress } from './WeeklyProgress';
 import { AdminPanel } from './AdminPanel';
 import { AnimatedClock } from './AnimatedClock';
+import { EscalasVisualizacao } from './EscalasVisualizacao';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 
@@ -74,6 +75,7 @@ export function Dashboard() {
             <>
               <PontoCard />
               <WeeklyProgress />
+              <EscalasVisualizacao />
             </>
           )}
         </div>
