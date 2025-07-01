@@ -9,6 +9,107 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      assinaturas: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          data_fim: string
+          data_inicio: string
+          data_pagamento: string | null
+          id: string
+          plano_id: string
+          status: string
+          updated_at: string
+          valor_pago: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          data_fim: string
+          data_inicio: string
+          data_pagamento?: string | null
+          id?: string
+          plano_id: string
+          status?: string
+          updated_at?: string
+          valor_pago: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          data_fim?: string
+          data_inicio?: string
+          data_pagamento?: string | null
+          id?: string
+          plano_id?: string
+          status?: string
+          updated_at?: string
+          valor_pago?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assinaturas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assinaturas_plano_id_fkey"
+            columns: ["plano_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clientes: {
+        Row: {
+          created_at: string
+          data_ultimo_pagamento: string | null
+          email: string
+          id: string
+          nome: string
+          observacoes: string | null
+          plano_ativo_id: string | null
+          status_assinatura: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_ultimo_pagamento?: string | null
+          email: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          plano_ativo_id?: string | null
+          status_assinatura?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_ultimo_pagamento?: string | null
+          email?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          plano_ativo_id?: string | null
+          status_assinatura?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_plano_ativo_id_fkey"
+            columns: ["plano_ativo_id"]
+            isOneToOne: false
+            referencedRelation: "planos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connection_requests: {
         Row: {
           created_at: string
@@ -127,43 +228,64 @@ export type Database = {
         Row: {
           colaborador_id: string
           created_at: string
-          domingo: string | null
+          domingo_entrada: string | null
+          domingo_saida: string | null
           id: string
-          quarta: string | null
-          quinta: string | null
-          sabado: string | null
-          segunda: string | null
+          quarta_entrada: string | null
+          quarta_saida: string | null
+          quinta_entrada: string | null
+          quinta_saida: string | null
+          sabado_entrada: string | null
+          sabado_saida: string | null
+          segunda_entrada: string | null
+          segunda_saida: string | null
           semana: string
-          sexta: string | null
-          terca: string | null
+          sexta_entrada: string | null
+          sexta_saida: string | null
+          terca_entrada: string | null
+          terca_saida: string | null
           updated_at: string
         }
         Insert: {
           colaborador_id: string
           created_at?: string
-          domingo?: string | null
+          domingo_entrada?: string | null
+          domingo_saida?: string | null
           id?: string
-          quarta?: string | null
-          quinta?: string | null
-          sabado?: string | null
-          segunda?: string | null
+          quarta_entrada?: string | null
+          quarta_saida?: string | null
+          quinta_entrada?: string | null
+          quinta_saida?: string | null
+          sabado_entrada?: string | null
+          sabado_saida?: string | null
+          segunda_entrada?: string | null
+          segunda_saida?: string | null
           semana: string
-          sexta?: string | null
-          terca?: string | null
+          sexta_entrada?: string | null
+          sexta_saida?: string | null
+          terca_entrada?: string | null
+          terca_saida?: string | null
           updated_at?: string
         }
         Update: {
           colaborador_id?: string
           created_at?: string
-          domingo?: string | null
+          domingo_entrada?: string | null
+          domingo_saida?: string | null
           id?: string
-          quarta?: string | null
-          quinta?: string | null
-          sabado?: string | null
-          segunda?: string | null
+          quarta_entrada?: string | null
+          quarta_saida?: string | null
+          quinta_entrada?: string | null
+          quinta_saida?: string | null
+          sabado_entrada?: string | null
+          sabado_saida?: string | null
+          segunda_entrada?: string | null
+          segunda_saida?: string | null
           semana?: string
-          sexta?: string | null
-          terca?: string | null
+          sexta_entrada?: string | null
+          sexta_saida?: string | null
+          terca_entrada?: string | null
+          terca_saida?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -564,6 +686,99 @@ export type Database = {
           },
         ]
       }
+      pagamentos: {
+        Row: {
+          assinatura_id: string | null
+          cliente_id: string
+          created_at: string
+          data_pagamento: string
+          id: string
+          metodo_pagamento: string
+          observacoes: string | null
+          status_pagamento: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          assinatura_id?: string | null
+          cliente_id: string
+          created_at?: string
+          data_pagamento?: string
+          id?: string
+          metodo_pagamento: string
+          observacoes?: string | null
+          status_pagamento?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          assinatura_id?: string | null
+          cliente_id?: string
+          created_at?: string
+          data_pagamento?: string
+          id?: string
+          metodo_pagamento?: string
+          observacoes?: string | null
+          status_pagamento?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_assinatura_id_fkey"
+            columns: ["assinatura_id"]
+            isOneToOne: false
+            referencedRelation: "assinaturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planos: {
+        Row: {
+          ativo: boolean | null
+          beneficios: Json | null
+          created_at: string
+          descricao: string | null
+          duracao_em_dias: number
+          id: string
+          nome_do_plano: string
+          recorrente: boolean | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean | null
+          beneficios?: Json | null
+          created_at?: string
+          descricao?: string | null
+          duracao_em_dias: number
+          id?: string
+          nome_do_plano: string
+          recorrente?: boolean | null
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          ativo?: boolean | null
+          beneficios?: Json | null
+          created_at?: string
+          descricao?: string | null
+          duracao_em_dias?: number
+          id?: string
+          nome_do_plano?: string
+          recorrente?: boolean | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       ponto_registros: {
         Row: {
           colaborador_id: string
@@ -801,6 +1016,7 @@ export type Database = {
           invited_by_matricula: string | null
           is_active: boolean | null
           is_verified: boolean | null
+          is_vip: boolean | null
           last_active: string | null
           location: string
           matricula_code: string
@@ -828,6 +1044,7 @@ export type Database = {
           invited_by_matricula?: string | null
           is_active?: boolean | null
           is_verified?: boolean | null
+          is_vip?: boolean | null
           last_active?: string | null
           location: string
           matricula_code: string
@@ -855,6 +1072,7 @@ export type Database = {
           invited_by_matricula?: string | null
           is_active?: boolean | null
           is_verified?: boolean | null
+          is_vip?: boolean | null
           last_active?: string | null
           location?: string
           matricula_code?: string
@@ -1112,6 +1330,10 @@ export type Database = {
       }
     }
     Functions: {
+      calcular_status_assinatura: {
+        Args: { data_fim: string }
+        Returns: string
+      }
       create_notification: {
         Args: {
           target_profile_id: string

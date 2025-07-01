@@ -4,12 +4,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Calendar, Clock, Save, Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, Save, Plus, Trash2, AlertTriangle, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
+// Extend jsPDF type to include autoTable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
 
 interface Colaborador {
   id: string;
@@ -39,6 +48,7 @@ export function EscalasRecuperacao() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
 
   const diasSemana = [
@@ -199,6 +209,109 @@ export function EscalasRecuperacao() {
     }
   };
 
+  const exportarPDF = async () => {
+    try {
+      setExporting(true);
+      
+      const doc = new jsPDF();
+      const inicioSemana = startOfWeek(semanaAtual, { weekStartsOn: 0 });
+      const fimSemana = addDays(inicioSemana, 4);
+      
+      // Título
+      doc.setFontSize(20);
+      doc.text('Previsão de Escalas Semanais', 20, 20);
+      
+      // Período
+      doc.setFontSize(12);
+      doc.text(
+        `Período: ${format(inicioSemana, 'dd/MM/yyyy', { locale: ptBR })} a ${format(fimSemana, 'dd/MM/yyyy', { locale: ptBR })}`,
+        20,
+        30
+      );
+      
+      // Data de geração
+      doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, 20, 40);
+      
+      // Preparar dados para a tabela
+      const tableData = escalas.map(escala => {
+        const colaborador = colaboradores.find(c => c.id === escala.colaborador_id);
+        const row = [
+          colaborador?.nome || '',
+          colaborador?.cargo || ''
+        ];
+        
+        // Adicionar horários para cada dia
+        diasSemana.forEach(dia => {
+          const entrada = escala[`${dia.key}_entrada` as keyof EscalaSemanal] as string;
+          const saida = escala[`${dia.key}_saida` as keyof EscalaSemanal] as string;
+          
+          if (entrada && saida) {
+            row.push(`${entrada} - ${saida}`);
+          } else {
+            row.push('Folga');
+          }
+        });
+        
+        // Total de horas
+        row.push(calcularTotalHoras(escala));
+        
+        return row;
+      });
+      
+      // Cabeçalhos da tabela
+      const headers = [
+        'Colaborador',
+        'Cargo',
+        ...diasSemana.map(dia => dia.label),
+        'Total'
+      ];
+      
+      // Configurar tabela
+      doc.autoTable({
+        head: [headers],
+        body: tableData,
+        startY: 50,
+        styles: {
+          fontSize: 8,
+          cellPadding: 2
+        },
+        headStyles: {
+          fillColor: [99, 102, 241],
+          textColor: 255,
+          fontStyle: 'bold'
+        },
+        columnStyles: {
+          0: { cellWidth: 25 }, // Colaborador
+          1: { cellWidth: 20 }, // Cargo
+          2: { cellWidth: 20 }, // Segunda
+          3: { cellWidth: 20 }, // Terça
+          4: { cellWidth: 20 }, // Quarta
+          5: { cellWidth: 20 }, // Quinta
+          6: { cellWidth: 20 }, // Sexta
+          7: { cellWidth: 15 }  // Total
+        }
+      });
+      
+      // Salvar PDF
+      const filename = `escalas_${format(inicioSemana, 'yyyy-MM-dd', { locale: ptBR })}.pdf`;
+      doc.save(filename);
+      
+      toast({
+        title: "Sucesso",
+        description: "PDF exportado com sucesso!",
+      });
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao exportar PDF",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const excluirSemanaAnterior = async () => {
     try {
       setDeleting(true);
@@ -349,45 +462,66 @@ export function EscalasRecuperacao() {
 
         {/* Botões de ação */}
         <div className="flex justify-between items-center mt-6">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button 
-                variant="destructive" 
-                disabled={deleting}
-                className="flex items-center space-x-2"
-              >
-                {deleting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Excluindo...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    <span>Excluir Semana Anterior</span>
-                  </>
-                )}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center space-x-2">
-                  <AlertTriangle className="w-5 h-5 text-red-500" />
-                  <span>Confirmar Exclusão</span>
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  Tem certeza que deseja excluir todos os dados de escala da semana anterior? 
-                  Esta ação não pode ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={excluirSemanaAnterior} className="bg-red-500 hover:bg-red-600">
-                  Excluir
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <div className="flex space-x-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  disabled={deleting}
+                  className="flex items-center space-x-2"
+                >
+                  {deleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Excluindo...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      <span>Excluir Semana Anterior</span>
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center space-x-2">
+                    <AlertTriangle className="w-5 h-5 text-red-500" />
+                    <span>Confirmar Exclusão</span>
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tem certeza que deseja excluir todos os dados de escala da semana anterior? 
+                    Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={excluirSemanaAnterior} className="bg-red-500 hover:bg-red-600">
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <Button 
+              onClick={exportarPDF} 
+              disabled={exporting}
+              variant="outline"
+              className="flex items-center space-x-2"
+            >
+              {exporting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                  <span>Exportando...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span>Exportar PDF</span>
+                </>
+              )}
+            </Button>
+          </div>
 
           <Button 
             onClick={salvarEscalas} 
@@ -421,7 +555,8 @@ export function EscalasRecuperacao() {
             <li>• O sistema desconta automaticamente 1h de almoço para jornadas acima de 6h</li>
             <li>• O total previsto é calculado automaticamente</li>
             <li>• Use as setas para navegar entre diferentes semanas</li>
-            <li>• Clique em "Salvar Escalas" para confirmar as mudanças</li>
+            <li>• Clique em "Salvar Escalas" para confirmar as mudanças no banco de dados</li>
+            <li>• Use "Exportar PDF" para gerar relatório da semana atual</li>
             <li>• Use "Excluir Semana Anterior" para remover dados antigos</li>
           </ul>
         </div>
