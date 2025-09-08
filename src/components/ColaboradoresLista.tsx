@@ -32,7 +32,7 @@ export function ColaboradoresLista({ colaboradores, onUpdate }: ColaboradoresLis
 
   // Filtrar colaboradores válidos
   const colaboradoresValidos = colaboradores.filter(colaborador => 
-    colaborador && colaborador.id && colaborador.id.toString().trim() !== ''
+    colaborador && colaborador.id && colaborador.nome && colaborador.id.toString().trim() !== ''
   );
 
   const formatCPF = (value: string) => {
