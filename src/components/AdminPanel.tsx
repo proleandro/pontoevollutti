@@ -77,6 +77,7 @@ export function AdminPanel() {
       <WeeklyProgressUpdater 
         onUpdate={() => setUpdateTrigger(prev => prev + 1)}
         listenToAllChanges={true}
+        channelPrefix="admin-panel"
       />
 
       {/* Header */}

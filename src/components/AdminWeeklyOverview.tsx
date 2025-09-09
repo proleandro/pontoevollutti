@@ -180,6 +180,7 @@ export function AdminWeeklyOverview() {
       <WeeklyProgressUpdater 
         onUpdate={carregarProgressoEstagiarios} 
         listenToAllChanges={true}
+        channelPrefix="admin-overview"
       />
       
       {/* Header */}

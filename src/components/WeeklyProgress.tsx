@@ -182,6 +182,7 @@ export function WeeklyProgress() {
         onUpdate={carregarDadosSemanais} 
         userId={user?.id}
         listenToAllChanges={user?.tipo === 'admin' || user?.tipo === 'gestor'}
+        channelPrefix="weekly-progress"
       />
       
       {/* Resumo Geral */}

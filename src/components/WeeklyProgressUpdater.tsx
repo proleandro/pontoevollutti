@@ -5,14 +5,24 @@ import { supabase } from '@/integrations/supabase/client';
 interface WeeklyProgressUpdaterProps {
   onUpdate: () => void;
   userId?: string;
-  listenToAllChanges?: boolean; // Nova prop para escutar mudanças globais
+  listenToAllChanges?: boolean;
+  channelPrefix?: string; // Nova prop para criar canais únicos
 }
 
-export function WeeklyProgressUpdater({ onUpdate, userId, listenToAllChanges = false }: WeeklyProgressUpdaterProps) {
+export function WeeklyProgressUpdater({ 
+  onUpdate, 
+  userId, 
+  listenToAllChanges = false,
+  channelPrefix = 'default'
+}: WeeklyProgressUpdaterProps) {
   useEffect(() => {
+    // Criar nomes únicos para os canais baseados no prefixo
+    const pontoChannelName = `${channelPrefix}-ponto-changes`;
+    const escalasChannelName = `${channelPrefix}-escalas-changes`;
+
     // Configurar listener para mudanças na tabela ponto_registros
     const pontoChannel = supabase
-      .channel('ponto-changes')
+      .channel(pontoChannelName)
       .on(
         'postgres_changes',
         {
@@ -23,7 +33,7 @@ export function WeeklyProgressUpdater({ onUpdate, userId, listenToAllChanges = f
           ...((!listenToAllChanges && userId) && { filter: `colaborador_id=eq.${userId}` })
         },
         (payload) => {
-          console.log('Ponto atualizado:', payload);
+          console.log(`[${pontoChannelName}] Ponto atualizado:`, payload);
           onUpdate();
         }
       )
@@ -31,7 +41,7 @@ export function WeeklyProgressUpdater({ onUpdate, userId, listenToAllChanges = f
 
     // Configurar listener para mudanças na tabela escalas
     const escalasChannel = supabase
-      .channel('escalas-changes')
+      .channel(escalasChannelName)
       .on(
         'postgres_changes',
         {
@@ -42,7 +52,7 @@ export function WeeklyProgressUpdater({ onUpdate, userId, listenToAllChanges = f
           ...((!listenToAllChanges && userId) && { filter: `colaborador_id=eq.${userId}` })
         },
         (payload) => {
-          console.log('Escala atualizada:', payload);
+          console.log(`[${escalasChannelName}] Escala atualizada:`, payload);
           onUpdate();
         }
       )
@@ -52,7 +62,7 @@ export function WeeklyProgressUpdater({ onUpdate, userId, listenToAllChanges = f
       supabase.removeChannel(pontoChannel);
       supabase.removeChannel(escalasChannel);
     };
-  }, [onUpdate, userId, listenToAllChanges]);
+  }, [onUpdate, userId, listenToAllChanges, channelPrefix]);
 
   return null; // Este componente não renderiza nada
 }
