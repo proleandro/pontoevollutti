@@ -1597,8 +1597,16 @@ export type Database = {
           user_reaction: string
         }[]
       }
+      get_user_email_from_auth: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       is_admin: {
         Args: { user_id: string }
+        Returns: boolean
+      }
+      is_admin_or_manager: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       save_push_subscription: {
