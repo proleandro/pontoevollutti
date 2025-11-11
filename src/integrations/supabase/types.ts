@@ -1147,10 +1147,12 @@ export type Database = {
           partner_name: string | null
           plan_end_date: string | null
           plan_start_date: string | null
+          profile_photo: string | null
           state: string
           trial_end_date: string | null
           updated_at: string
           user_id: string
+          whatsapp: string | null
         }
         Insert: {
           age: number
@@ -1181,10 +1183,12 @@ export type Database = {
           partner_name?: string | null
           plan_end_date?: string | null
           plan_start_date?: string | null
+          profile_photo?: string | null
           state: string
           trial_end_date?: string | null
           updated_at?: string
           user_id: string
+          whatsapp?: string | null
         }
         Update: {
           age?: number
@@ -1215,10 +1219,12 @@ export type Database = {
           partner_name?: string | null
           plan_end_date?: string | null
           plan_start_date?: string | null
+          profile_photo?: string | null
           state?: string
           trial_end_date?: string | null
           updated_at?: string
           user_id?: string
+          whatsapp?: string | null
         }
         Relationships: [
           {
@@ -1546,10 +1552,7 @@ export type Database = {
         Args: { plan_end_date: string }
         Returns: number
       }
-      check_trial_status: {
-        Args: { profile_id: string }
-        Returns: boolean
-      }
+      check_trial_status: { Args: { profile_id: string }; Returns: boolean }
       create_notification: {
         Args: {
           from_profile_id?: string
@@ -1561,10 +1564,9 @@ export type Database = {
         }
         Returns: string
       }
-      generate_matricula_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      create_post_for_event: { Args: { event_id: string }; Returns: string }
+      detect_media_type_from_url: { Args: { url: string }; Returns: string }
+      generate_matricula_code: { Args: never; Returns: string }
       get_or_create_conversation: {
         Args: { p1_id: string; p2_id: string }
         Returns: string
@@ -1597,21 +1599,19 @@ export type Database = {
           user_reaction: string
         }[]
       }
-      get_user_email_from_auth: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      is_admin: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
-      is_admin_or_manager: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      get_user_email_from_auth: { Args: never; Returns: string }
+      is_admin: { Args: { user_id: string }; Returns: boolean }
+      is_admin_or_manager: { Args: never; Returns: boolean }
       save_push_subscription: {
         Args: { p_subscription: Json; p_user_id: string }
         Returns: undefined
+      }
+      sync_missing_profile_posts: {
+        Args: never
+        Returns: {
+          posts_created: number
+          profiles_affected: number
+        }[]
       }
     }
     Enums: {
