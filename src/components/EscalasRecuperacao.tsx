@@ -130,14 +130,20 @@ export function EscalasRecuperacao() {
     const minutosEntrada = horaEntrada * 60 + minutoEntrada;
     const minutosSaida = horaSaida * 60 + minutoSaida;
     
-    let totalMinutos = minutosSaida - minutosEntrada;
-    
-    // Descontar 1 hora de almoço se trabalhar mais de 6 horas
-    if (totalMinutos > 360) { // 6 horas = 360 minutos
-      totalMinutos -= 60; // Desconta 1 hora de almoço
-    }
-    
-    return Math.max(0, totalMinutos);
+    // Duração total do período
+    const totalMinutos = Math.max(0, minutosSaida - minutosEntrada);
+
+    // Janela fixa de almoço: 11:59 às 12:59 (1h)
+    const inicioAlmoco = 11 * 60 + 59; // 11:59
+    const fimAlmoco = 12 * 60 + 59;    // 12:59
+
+    // Desconta apenas o tempo TRABALHADO dentro da janela de almoço (até 60 min)
+    const inicioSobreposicao = Math.max(minutosEntrada, inicioAlmoco);
+    const fimSobreposicao = Math.min(minutosSaida, fimAlmoco);
+    const minutosAlmocoTrabalhados = Math.max(0, fimSobreposicao - inicioSobreposicao);
+
+    const liquidos = Math.max(0, totalMinutos - minutosAlmocoTrabalhados);
+    return liquidos;
   };
 
   const calcularTotalHoras = (escala: EscalaSemanal): string => {
